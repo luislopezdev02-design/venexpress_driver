@@ -3,12 +3,13 @@ import 'package:provider/provider.dart';
 import '../providers/auth_provider.dart';
 import '../providers/driver_provider.dart';
 import '../widgets/common_widgets.dart';
-import 'my_route_screen.dart';
+import 'available_deliveries_screen.dart';
 import 'commissions_screen.dart';
+import 'delivery_claim_scanner_screen.dart';
 import 'login_screen.dart';
+import 'my_delivery_route_screen.dart';
 import 'package_detail_screen.dart';
 import 'packages_screen.dart';
-import 'scanner_screen.dart';
 
 class HomeScreen extends StatefulWidget {
   const HomeScreen({super.key});
@@ -22,9 +23,10 @@ class _HomeScreenState extends State<HomeScreen> {
 
   final _screens = const [
     _DashboardTab(),
+    AvailableDeliveriesScreen(),
     PackagesScreen(),
+    MyDeliveryRouteScreen(),
     CommissionsScreen(),
-    MyRouteScreen(),
   ];
 
   @override
@@ -32,14 +34,17 @@ class _HomeScreenState extends State<HomeScreen> {
     return Scaffold(
       body: IndexedStack(index: _tabIndex, children: _screens),
       floatingActionButton: FloatingActionButton.extended(
-        onPressed: () {
-          Navigator.of(context).push(
-            MaterialPageRoute(builder: (_) => const ScannerScreen()),
+        onPressed: () async {
+          await Navigator.of(context).push(
+            MaterialPageRoute(builder: (_) => const DeliveryClaimScannerScreen()),
           );
+          if (mounted) {
+            context.read<DriverProvider>().loadDashboard();
+          }
         },
         backgroundColor: kPrimaryDark,
         icon: const Icon(Icons.qr_code_scanner),
-        label: const Text('Realizar Pedidos'),
+        label: const Text('Reclamar Pedido'),
       ),
       floatingActionButtonLocation: FloatingActionButtonLocation.centerFloat,
       bottomNavigationBar: BottomAppBar(
@@ -49,21 +54,10 @@ class _HomeScreenState extends State<HomeScreen> {
           mainAxisAlignment: MainAxisAlignment.spaceAround,
           children: [
             _navItem(icon: Icons.dashboard_outlined, label: 'Inicio', index: 0),
-            _navItem(icon: Icons.route_outlined, label: 'Mi Ruta', index: 3),
-            _navItem(icon: Icons.inventory_2_outlined, label: 'Pedidos', index: 1),
+            _navItem(icon: Icons.inbox_outlined, label: 'Disponibles', index: 1),
             const SizedBox(width: 48),
-            _navItem(icon: Icons.attach_money, label: 'Comisiones', index: 2),
-            IconButton(
-              icon: const Icon(Icons.logout, color: kMuted),
-              onPressed: () async {
-                await context.read<AuthProvider>().logout();
-                if (!mounted) return;
-                Navigator.of(context).pushAndRemoveUntil(
-                  MaterialPageRoute(builder: (_) => const LoginScreen()),
-                  (route) => false,
-                );
-              },
-            ),
+            _navItem(icon: Icons.alt_route, label: 'Mi Ruta', index: 3),
+            _navItem(icon: Icons.attach_money, label: 'Comisiones', index: 4),
           ],
         ),
       ),
@@ -75,7 +69,7 @@ class _HomeScreenState extends State<HomeScreen> {
     return InkWell(
       onTap: () => setState(() => _tabIndex = index),
       child: Padding(
-        padding: const EdgeInsets.symmetric(vertical: 8, horizontal: 12),
+        padding: const EdgeInsets.symmetric(vertical: 8, horizontal: 10),
         child: Column(
           mainAxisSize: MainAxisSize.min,
           children: [
@@ -104,7 +98,6 @@ class _DashboardTabState extends State<_DashboardTab> {
       final provider = context.read<DriverProvider>();
       provider.loadDashboard();
       provider.loadPackages();
-      provider.loadActiveRoute();
     });
   }
 
@@ -124,6 +117,19 @@ class _DashboardTabState extends State<_DashboardTab> {
           'Hola, ${auth.user?.name.split(' ').first ?? ''}',
           style: const TextStyle(color: kPrimaryDark, fontWeight: FontWeight.bold),
         ),
+        actions: [
+          IconButton(
+            icon: const Icon(Icons.logout, color: kMuted),
+            onPressed: () async {
+              await context.read<AuthProvider>().logout();
+              if (!context.mounted) return;
+              Navigator.of(context).pushAndRemoveUntil(
+                MaterialPageRoute(builder: (_) => const LoginScreen()),
+                (route) => false,
+              );
+            },
+          ),
+        ],
       ),
       body: RefreshIndicator(
         onRefresh: () => context.read<DriverProvider>().loadDashboard(),
@@ -171,51 +177,35 @@ class _DashboardTabState extends State<_DashboardTab> {
                       ),
                       const SizedBox(height: 20),
 
-                      // Banner de estado de la ruta
-                      if (driverProvider.activeRoute != null)
-                        InkWell(
-                          onTap: () => Navigator.of(context).push(
-                            MaterialPageRoute(builder: (_) => const MyRouteScreen()),
+                      // Acceso directo a Pedidos Disponibles
+                      InkWell(
+                        onTap: () => Navigator.of(context).push(
+                          MaterialPageRoute(builder: (_) => const AvailableDeliveriesScreen()),
+                        ),
+                        borderRadius: BorderRadius.circular(16),
+                        child: Container(
+                          margin: const EdgeInsets.only(bottom: 20),
+                          padding: const EdgeInsets.all(16),
+                          decoration: BoxDecoration(
+                            color: const Color(0xFF2563EB).withOpacity(0.08),
+                            borderRadius: BorderRadius.circular(16),
+                            border: Border.all(color: const Color(0xFF2563EB)),
                           ),
-                          borderRadius: BorderRadius.circular(16),
-                          child: Container(
-                            margin: const EdgeInsets.only(bottom: 20),
-                            padding: const EdgeInsets.all(16),
-                            decoration: BoxDecoration(
-                              color: driverProvider.activeRoute!.isInProgress
-                                  ? const Color(0xFF16A34A).withOpacity(0.08)
-                                  : const Color(0xFFF59E0B).withOpacity(0.1),
-                              borderRadius: BorderRadius.circular(16),
-                              border: Border.all(
-                                color: driverProvider.activeRoute!.isInProgress
-                                    ? const Color(0xFF16A34A)
-                                    : const Color(0xFFF59E0B),
+                          child: const Row(
+                            children: [
+                              Icon(Icons.inbox_outlined, color: Color(0xFF2563EB)),
+                              SizedBox(width: 12),
+                              Expanded(
+                                child: Text(
+                                  'Ver pedidos disponibles para reclamar',
+                                  style: TextStyle(fontSize: 13, color: kPrimaryDark, fontWeight: FontWeight.w500),
+                                ),
                               ),
-                            ),
-                            child: Row(
-                              children: [
-                                Icon(
-                                  driverProvider.activeRoute!.isInProgress
-                                      ? Icons.route
-                                      : Icons.pending_actions,
-                                  color: driverProvider.activeRoute!.isInProgress
-                                      ? const Color(0xFF16A34A)
-                                      : const Color(0xFFB45309),
-                                ),
-                                const SizedBox(width: 12),
-                                Expanded(
-                                  child: Text(
-                                    driverProvider.activeRoute!.isInProgress
-                                        ? 'Ruta en curso: ${driverProvider.activeRoute!.visitedStops}/${driverProvider.activeRoute!.totalStops} agencias visitadas'
-                                        : 'Tienes una ruta asignada por iniciar',
-                                    style: const TextStyle(fontSize: 13, color: kPrimaryDark, fontWeight: FontWeight.w500),
-                                  ),
-                                ),
-                                const Icon(Icons.chevron_right, color: kMuted),
-                              ],
-                            ),
+                              Icon(Icons.chevron_right, color: kMuted),
+                            ],
                           ),
                         ),
+                      ),
 
                       Container(
                         padding: const EdgeInsets.all(18),
@@ -252,7 +242,7 @@ class _DashboardTabState extends State<_DashboardTab> {
 
                       const SizedBox(height: 24),
                       const Text(
-                        'Pedidos pendientes',
+                        'Pedidos que tienes reclamados',
                         style: TextStyle(fontWeight: FontWeight.bold, color: kPrimaryDark, fontSize: 16),
                       ),
                       const SizedBox(height: 10),
@@ -261,7 +251,7 @@ class _DashboardTabState extends State<_DashboardTab> {
                         const Padding(
                           padding: EdgeInsets.symmetric(vertical: 16),
                           child: Text(
-                            'No tienes pedidos pendientes. Escanea una guía para empezar.',
+                            'No tienes pedidos reclamados todavía. Ve a "Disponibles" para tomar uno.',
                             style: TextStyle(color: kMuted),
                           ),
                         )

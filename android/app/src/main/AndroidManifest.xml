@@ -1,4 +1,15 @@
 <manifest xmlns:android="http://schemas.android.com/apk/res/android">
+    <!-- Requerido para todas las llamadas a la API de Laravel (login, rutas, paquetes, etc.) -->
+    <uses-permission android:name="android.permission.INTERNET"/>
+
+    <!-- Requerido por mobile_scanner para leer los códigos QR de las guías -->
+    <uses-permission android:name="android.permission.CAMERA"/>
+    <uses-feature android:name="android.hardware.camera" android:required="true"/>
+    <uses-feature android:name="android.hardware.camera.autofocus" android:required="false"/>
+
+    <!-- Requerido por image_picker si se toma foto directo con la cámara como evidencia de entrega -->
+    <uses-permission android:name="android.permission.READ_MEDIA_IMAGES"/>
+
     <application
         android:label="venexpress_driver"
         android:name="${applicationName}"

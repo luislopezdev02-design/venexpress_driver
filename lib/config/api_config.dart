@@ -1,34 +1,24 @@
-import 'package:flutter/foundation.dart' show kReleaseMode;
-
 /// Configuración central de la API.
 ///
-/// La URL se elige SOLA según el tipo de build, usando [kReleaseMode]:
-/// - `flutter run` (debug)            -> usa [_devBaseUrl]
-/// - `flutter build apk --release`    -> usa [_prodBaseUrl]
+/// Cambia solo [baseUrl] al pasar de desarrollo local a producción.
 ///
-/// Así no hay que acordarse de cambiar nada a mano antes de compilar el
-/// APK final: solo edita las dos constantes de abajo una vez y listo.
-///
-/// --- Cómo editar [_devBaseUrl] ---
 /// - Emulador Android apuntando a tu XAMPP local: usa 10.0.2.2 en
 ///   lugar de 127.0.0.1 (127.0.0.1 dentro del emulador apunta al
 ///   propio emulador, no a tu PC).
-///     'http://10.0.2.2:8000/api'
-/// - Teléfono físico en la MISMA red WiFi que tu PC: usa la IP local
-///   de tu PC (ej. ipconfig / ifconfig), y arranca Laravel con
-///   `php artisan serve --host=0.0.0.0` para que escuche en la red:
-///     'http://192.168.1.50:8000/api'
-///
-/// --- Cómo editar [_prodBaseUrl] ---
-/// - La URL real de tu dominio en producción, siempre con https://
-///   (el build de release bloquea cleartext http:// a propósito,
-///   ver network_security_config.xml).
-///     'https://venexpress.com/api'
+/// - Dispositivo físico en la misma red que tu PC: usa la IP local
+///   de tu PC, ej. http://192.168.1.50:8000
+/// - Producción: la URL real de venexpress.com (o el dominio que uses).
 class ApiConfig {
-  static const String _devBaseUrl = 'http://192.168.0.164:8000/api'; 
-  static const String _prodBaseUrl = 'https://tu-dominio.com/api';
+  // Desarrollo local: celular físico en la misma red WiFi que esta PC,
+  // apuntando al Apache de XAMPP (sin vhost, por eso pasa por /public).
+  // Si tu IP local cambia (DHCP), actualiza este valor.
+  static const String baseUrl = 'http://192.168.0.164/venexpress/public/api';
 
-  static String get baseUrl => kReleaseMode ? _prodBaseUrl : _devBaseUrl;
+  // Producción: la URL real de venexpress.com (o el dominio que uses).
+  // static const String baseUrl = 'https://tu-dominio.com/api';
+
+  // Emulador Android apuntando a este mismo XAMPP:
+  // static const String baseUrl = 'http://10.0.2.2/venexpress/public/api';
 
   static const Duration timeout = Duration(seconds: 20);
 }

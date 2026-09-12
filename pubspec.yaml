@@ -26,6 +26,9 @@ dependencies:
   # Selección/captura de foto para la evidencia de entrega.
   image_picker: ^1.1.2
 
+  # Ubicación GPS del repartidor, para ordenar sus entregas por distancia.
+  geolocator: ^13.0.1
+
   # Formato de fechas y montos.
   intl: ^0.19.0
 
@@ -34,24 +37,5 @@ dev_dependencies:
     sdk: flutter
   flutter_lints: ^4.0.0
 
-  # Genera el ícono de la app (Android e iOS) a partir de una sola
-  # imagen. Ver instrucciones abajo en flutter_launcher_icons.
-  flutter_launcher_icons: ^0.14.1
-
 flutter:
   uses-material-design: true
-
-# --- Ícono personalizado de la app ---
-# 1. Pon tu logo en assets/icon/icon.png (imagen cuadrada, mínimo
-#    1024x1024px, fondo el que quieras — para Android moderno lo ideal
-#    es que el logo tenga algo de margen, ya que el sistema lo recorta
-#    en distintas formas: círculo, cuadrado redondeado, etc.)
-# 2. Corre: flutter pub get
-# 3. Corre: dart run flutter_launcher_icons
-# Esto reemplaza el ícono por defecto de Flutter en todas las
-# resoluciones necesarias, tanto para debug como para release.
-flutter_launcher_icons:
-  android: true
-  ios: false
-  image_path: "assets/icon/icon.png"
-  min_sdk_android: 21
