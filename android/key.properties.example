@@ -1,0 +1,19 @@
+# Copia este archivo a android/key.properties (SIN el .example) y
+# rellena tus datos reales. Ese archivo NO se sube a git.
+#
+# --- Cómo generar tu keystore (una sola vez, guárdalo para siempre) ---
+# Corre esto desde la carpeta android/ de tu proyecto:
+#
+#   keytool -genkey -v -keystore venexpress-driver-release.jks \
+#     -keyalg RSA -keysize 2048 -validity 10000 -alias venexpress
+#
+# Te va a pedir una contraseña para el keystore y otra para la key
+# (pueden ser la misma). GUARDA ESE ARCHIVO .jks Y LAS CONTRASEÑAS EN
+# UN LUGAR SEGURO — si lo pierdes, no vas a poder publicar
+# actualizaciones de la misma app nunca más, tendrías que publicarla
+# como una app nueva.
+#
+storePassword=TU_CONTRASEÑA_DEL_KEYSTORE
+keyPassword=TU_CONTRASEÑA_DE_LA_KEY
+keyAlias=venexpress
+storeFile=venexpress-driver-release.jks

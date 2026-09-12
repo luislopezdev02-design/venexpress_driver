@@ -1,0 +1,13 @@
+<?xml version="1.0" encoding="utf-8"?>
+<!--
+    Config de red SOLO para builds debug (flutter run).
+    Permite trafico cleartext (http) para poder probar contra tu backend
+    local en la misma red WiFi, ej. http 192.168.0.164:8000.
+-->
+<network-security-config>
+    <base-config cleartextTrafficPermitted="true">
+        <trust-anchors>
+            <certificates src="system"/>
+        </trust-anchors>
+    </base-config>
+</network-security-config>

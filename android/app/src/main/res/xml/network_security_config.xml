@@ -1,0 +1,20 @@
+<?xml version="1.0" encoding="utf-8"?>
+<!--
+    Config de red para builds de RELEASE (y cualquier build que no sea debug).
+
+    A propósito NO permite tráfico cleartext (http://) aquí: en producción,
+    la API de Venexpress debe servirse siempre por HTTPS con un dominio real.
+
+    Para pruebas en red local con http:// (ej. http://192.168.0.164:8000),
+    usa un build debug — ese usa automáticamente
+    android/app/src/debug/res/xml/network_security_config.xml, que sí
+    permite cleartext. Android selecciona el archivo correcto según el
+    tipo de build; no hace falta tocar nada más.
+-->
+<network-security-config>
+    <base-config cleartextTrafficPermitted="false">
+        <trust-anchors>
+            <certificates src="system"/>
+        </trust-anchors>
+    </base-config>
+</network-security-config>
