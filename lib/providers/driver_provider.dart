@@ -5,11 +5,13 @@ import '../models/package_model.dart';
 import '../models/route_model.dart';
 import '../services/driver_service.dart';
 import '../services/driver_route_service.dart';
+import '../services/hub_scan_service.dart';
 import '../services/api_client.dart';
 
 class DriverProvider extends ChangeNotifier {
   final DriverService _service = DriverService();
   final DriverRouteService _routeService = DriverRouteService();
+  final HubScanService _hubScanService = HubScanService();
 
   RouteModel? activeRoute;
   bool isLoadingRoute = false;
@@ -35,6 +37,78 @@ class DriverProvider extends ChangeNotifier {
   Future<void> startRoute() async {
     activeRoute = await _routeService.startRoute();
     notifyListeners();
+  }
+
+  Future<void> completeRoute() async {
+    activeRoute = await _routeService.completeRoute();
+    notifyListeners();
+  }
+
+  List<RouteModel> availableRoutes = [];
+  bool isLoadingAvailableRoutes = false;
+  String? availableRoutesError;
+
+  /// Rutas hub_transfer/hub_distribution disponibles para el
+  /// repartidor de HUB autenticado (equivalente a la pestaña
+  /// "Rutas disponibles" del dashboard web).
+  Future<void> loadAvailableRoutes() async {
+    isLoadingAvailableRoutes = true;
+    availableRoutesError = null;
+    notifyListeners();
+
+    try {
+      availableRoutes = await _routeService.getAvailableRoutes();
+    } on ApiException catch (e) {
+      availableRoutesError = e.message;
+    } catch (e) {
+      availableRoutesError = 'No se pudieron cargar las rutas disponibles.';
+    } finally {
+      isLoadingAvailableRoutes = false;
+      notifyListeners();
+    }
+  }
+
+  /// "Primero en tomar, primero en repartir": si el backend rechaza
+  /// la toma (otro repartidor la tomó primero), propaga la
+  /// ApiException tal cual para que la pantalla muestre el mensaje.
+  Future<void> claimRoute(int routeId) async {
+    activeRoute = await _routeService.claimRoute(routeId);
+    notifyListeners();
+  }
+
+  /// Identifica una guía sin ejecutar ningún movimiento (paso 1 del
+  /// escaneo de HUB: ESCANEAR -> IDENTIFICAR).
+  Future<PackageModel> lookupPackage(String trackingNumber) => _hubScanService.lookup(trackingNumber);
+
+  /// Ejecuta la operación de HUB ya confirmada por el repartidor
+  /// (paso 2: EJECUTAR). La clave debe venir de
+  /// [resolveHubOperation], calculada sobre la misma guía identificada
+  /// en [lookupPackage].
+  Future<HubScanResult> executeHubOperation(String operationKey, String trackingNumber) async {
+    final HubScanResult result;
+
+    switch (operationKey) {
+      case 'collection':
+        result = await _hubScanService.scanCollection(trackingNumber);
+        break;
+      case 'hub_reception':
+        result = await _hubScanService.scanHubReception(trackingNumber);
+        break;
+      case 'hub_departure':
+        result = await _hubScanService.scanHubDispatch(trackingNumber);
+        break;
+      case 'hub_arrival':
+        result = await _hubScanService.scanHubArrival(trackingNumber);
+        break;
+      default:
+        throw ApiException('Operación de escaneo desconocida.');
+    }
+
+    // Refrescamos en segundo plano para que "Mi Ruta" refleje el
+    // avance sin que el repartidor tenga que salir de la pantalla.
+    loadActiveRoute();
+
+    return result;
   }
 
   DashboardSummary? dashboard;
@@ -105,6 +179,7 @@ class DriverProvider extends ChangeNotifier {
     String? receiverPhone,
     required String confirmationMethod,
     File? photo,
+    String? codPaymentMethod,
   }) async {
     final updated = await _service.completeDelivery(
       packageId: packageId,
@@ -113,6 +188,7 @@ class DriverProvider extends ChangeNotifier {
       receiverPhone: receiverPhone,
       confirmationMethod: confirmationMethod,
       photo: photo,
+      codPaymentMethod: codPaymentMethod,
     );
 
     loadDashboard();

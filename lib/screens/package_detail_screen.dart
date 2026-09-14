@@ -79,7 +79,7 @@ class _PackageDetailScreenState extends State<PackageDetailScreen> {
                     ),
                     const SizedBox(height: 16),
                     DropdownButtonFormField<String>(
-                      value: selectedType,
+                      initialValue: selectedType,
                       decoration: const InputDecoration(labelText: 'Motivo', border: OutlineInputBorder()),
                       items: IncidentType.labels.entries
                           .map((e) => DropdownMenuItem(value: e.key, child: Text(e.value)))
@@ -154,6 +154,7 @@ class _PackageDetailScreenState extends State<PackageDetailScreen> {
     final idDocController = TextEditingController();
     final phoneController = TextEditingController();
     String confirmationMethod = 'cedula';
+    String? codPaymentMethod;
     File? photo;
 
     await showModalBottomSheet(
@@ -192,7 +193,7 @@ class _PackageDetailScreenState extends State<PackageDetailScreen> {
                     ),
                     const SizedBox(height: 12),
                     DropdownButtonFormField<String>(
-                      value: confirmationMethod,
+                      initialValue: confirmationMethod,
                       decoration: const InputDecoration(labelText: 'Método de confirmación', border: OutlineInputBorder()),
                       items: const [
                         DropdownMenuItem(value: 'cedula', child: Text('Verificación de cédula')),
@@ -201,6 +202,39 @@ class _PackageDetailScreenState extends State<PackageDetailScreen> {
                       ],
                       onChanged: (value) => setSheetState(() => confirmationMethod = value!),
                     ),
+                    if (package.isCod && package.codCollectedAt == null) ...[
+                      const SizedBox(height: 12),
+                      Container(
+                        padding: const EdgeInsets.all(12),
+                        decoration: BoxDecoration(
+                          color: const Color(0xFFFEF3C7),
+                          borderRadius: BorderRadius.circular(12),
+                          border: Border.all(color: const Color(0xFFFDE68A)),
+                        ),
+                        child: Text(
+                          'Este pedido es contra entrega (COD): US\$${package.codAmountUsd?.toStringAsFixed(2) ?? '0.00'}. '
+                          'Indica cómo te cancelaron antes de confirmar.',
+                          style: const TextStyle(fontSize: 12, color: Color(0xFF92400E)),
+                        ),
+                      ),
+                      const SizedBox(height: 12),
+                      DropdownButtonFormField<String>(
+                        initialValue: codPaymentMethod,
+                        decoration: const InputDecoration(
+                          labelText: 'Forma de pago del cobro',
+                          border: OutlineInputBorder(),
+                        ),
+                        hint: const Text('Selecciona cómo te cancelaron...'),
+                        items: const [
+                          DropdownMenuItem(value: 'efectivo_usd', child: Text('Efectivo (USD)')),
+                          DropdownMenuItem(value: 'efectivo_ves', child: Text('Efectivo (VES)')),
+                          DropdownMenuItem(value: 'pago_movil', child: Text('Pago móvil')),
+                          DropdownMenuItem(value: 'transferencia', child: Text('Transferencia')),
+                          DropdownMenuItem(value: 'zelle', child: Text('Zelle')),
+                        ],
+                        onChanged: (value) => setSheetState(() => codPaymentMethod = value),
+                      ),
+                    ],
                     const SizedBox(height: 12),
                     OutlinedButton.icon(
                       onPressed: () async {
@@ -232,6 +266,13 @@ class _PackageDetailScreenState extends State<PackageDetailScreen> {
                             return;
                           }
 
+                          if (package.isCod && package.codCollectedAt == null && codPaymentMethod == null) {
+                            ScaffoldMessenger.of(sheetContext).showSnackBar(
+                              const SnackBar(content: Text('Indica la forma de pago con la que te cancelaron el COD.')),
+                            );
+                            return;
+                          }
+
                           Navigator.of(sheetContext).pop();
 
                           try {
@@ -242,6 +283,7 @@ class _PackageDetailScreenState extends State<PackageDetailScreen> {
                                   receiverPhone: phoneController.text.trim(),
                                   confirmationMethod: confirmationMethod,
                                   photo: photo,
+                                  codPaymentMethod: codPaymentMethod,
                                 );
 
                             if (!mounted) return;
@@ -269,6 +311,16 @@ class _PackageDetailScreenState extends State<PackageDetailScreen> {
       },
     );
   }
+
+  static const Map<String, String> _paymentMethodLabels = {
+    'efectivo_usd': 'Efectivo (USD)',
+    'efectivo_ves': 'Efectivo (VES)',
+    'pago_movil': 'Pago móvil',
+    'transferencia': 'Transferencia',
+    'zelle': 'Zelle',
+  };
+
+  String _paymentMethodLabel(String method) => _paymentMethodLabels[method] ?? method;
 
   Future<void> _collectCod() async {
     try {
@@ -404,6 +456,8 @@ class _PackageDetailScreenState extends State<PackageDetailScreen> {
                             _infoRow('Monto', '\$${_package!.codAmountUsd?.toStringAsFixed(2) ?? '0.00'}'),
                             _infoRow('Estado', _package!.codStatus == 'liquidado' ? 'Liquidado' : 'Pendiente'),
                             _infoRow('Cobrado', _package!.codCollectedAt != null ? 'Sí' : 'No'),
+                            if (_package!.codPaymentMethod != null)
+                              _infoRow('Forma de pago', _paymentMethodLabel(_package!.codPaymentMethod!)),
                           ],
                         ),
 

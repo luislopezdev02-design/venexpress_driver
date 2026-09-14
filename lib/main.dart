@@ -3,6 +3,7 @@ import 'package:provider/provider.dart';
 import 'providers/auth_provider.dart';
 import 'providers/driver_provider.dart';
 import 'screens/home_screen.dart';
+import 'screens/hub_home_screen.dart';
 import 'screens/login_screen.dart';
 import 'widgets/common_widgets.dart';
 
@@ -73,7 +74,7 @@ class _SplashGateState extends State<_SplashGate> {
     }
 
     if (auth.status == AuthStatus.authenticated) {
-      return const HomeScreen();
+      return auth.driver?.driverType == 'hub' ? const HubHomeScreen() : const HomeScreen();
     }
 
     return const LoginScreen();

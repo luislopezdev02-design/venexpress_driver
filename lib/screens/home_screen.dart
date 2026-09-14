@@ -38,9 +38,8 @@ class _HomeScreenState extends State<HomeScreen> {
           await Navigator.of(context).push(
             MaterialPageRoute(builder: (_) => const DeliveryClaimScannerScreen()),
           );
-          if (mounted) {
-            context.read<DriverProvider>().loadDashboard();
-          }
+          if (!context.mounted) return;
+          context.read<DriverProvider>().loadDashboard();
         },
         backgroundColor: kPrimaryDark,
         icon: const Icon(Icons.qr_code_scanner),
@@ -187,7 +186,7 @@ class _DashboardTabState extends State<_DashboardTab> {
                           margin: const EdgeInsets.only(bottom: 20),
                           padding: const EdgeInsets.all(16),
                           decoration: BoxDecoration(
-                            color: const Color(0xFF2563EB).withOpacity(0.08),
+                            color: const Color(0xFF2563EB).withValues(alpha: 0.08),
                             borderRadius: BorderRadius.circular(16),
                             border: Border.all(color: const Color(0xFF2563EB)),
                           ),

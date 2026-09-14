@@ -33,6 +33,7 @@ class PackageModel {
   final double? codAmountUsd;
   final String? codStatus;
   final String? codCollectedAt;
+  final String? codPaymentMethod;
   final double? driverRemunerationUsd;
   final String? driverRemunerationStatus;
   final bool securityWarning;
@@ -59,6 +60,7 @@ class PackageModel {
     this.codAmountUsd,
     this.codStatus,
     this.codCollectedAt,
+    this.codPaymentMethod,
     this.driverRemunerationUsd,
     this.driverRemunerationStatus,
     required this.securityWarning,
@@ -92,6 +94,7 @@ class PackageModel {
       codAmountUsd: (json['cod_amount_usd'] as num?)?.toDouble(),
       codStatus: json['cod_status'],
       codCollectedAt: json['cod_collected_at'],
+      codPaymentMethod: json['cod_payment_method'],
       driverRemunerationUsd: (json['driver_remuneration_usd'] as num?)?.toDouble(),
       driverRemunerationStatus: json['driver_remuneration_status'],
       securityWarning: json['security_warning'] ?? false,

@@ -49,7 +49,14 @@ class _MyDeliveryRouteScreenState extends State<MyDeliveryRouteScreen> {
     } on ApiException catch (e) {
       setState(() => _error = e.message);
     } catch (e) {
-      setState(() => _error = 'No se pudo calcular tu ruta.');
+      // No debería llegar aquí normalmente (LocationException y
+      // ApiException cubren los casos esperados). Si pasa, dejamos
+      // rastro en el log para poder diagnosticarlo — el mensaje al
+      // repartidor solo sugiere las dos causas más comunes.
+      debugPrint('Error inesperado calculando la ruta de entrega: $e');
+      setState(() => _error =
+          'No se pudo calcular tu ruta. Verifica tu conexión a internet y que el GPS esté activo, luego reintenta.\n'
+          '(detalle técnico: $e)');
     } finally {
       setState(() => _isLoading = false);
     }
@@ -85,7 +92,7 @@ class _MyDeliveryRouteScreenState extends State<MyDeliveryRouteScreen> {
                       ),
                     ],
                   )
-                : _stops.isEmpty
+                : _stops.isEmpty && _pendingLocation.isEmpty
                     ? ListView(
                         padding: const EdgeInsets.all(24),
                         children: const [
@@ -104,26 +111,27 @@ class _MyDeliveryRouteScreenState extends State<MyDeliveryRouteScreen> {
                     : ListView(
                         padding: const EdgeInsets.all(16),
                         children: [
-                          Container(
-                            margin: const EdgeInsets.only(bottom: 16),
-                            padding: const EdgeInsets.all(14),
-                            decoration: BoxDecoration(
-                              color: kPrimaryDark,
-                              borderRadius: BorderRadius.circular(14),
-                            ),
-                            child: Row(
-                              children: [
-                                const Icon(Icons.info_outline, color: Colors.white, size: 18),
-                                const SizedBox(width: 10),
-                                Expanded(
-                                  child: Text(
-                                    'Orden sugerido: de más lejos a más cerca. Entrega el #1 primero.',
-                                    style: const TextStyle(color: Colors.white, fontSize: 12),
+                          if (_stops.isNotEmpty)
+                            Container(
+                              margin: const EdgeInsets.only(bottom: 16),
+                              padding: const EdgeInsets.all(14),
+                              decoration: BoxDecoration(
+                                color: kPrimaryDark,
+                                borderRadius: BorderRadius.circular(14),
+                              ),
+                              child: const Row(
+                                children: [
+                                  Icon(Icons.info_outline, color: Colors.white, size: 18),
+                                  SizedBox(width: 10),
+                                  Expanded(
+                                    child: Text(
+                                      'Orden sugerido: de más lejos a más cerca. Entrega el #1 primero.',
+                                      style: TextStyle(color: Colors.white, fontSize: 12),
+                                    ),
                                   ),
-                                ),
-                              ],
+                                ],
+                              ),
                             ),
-                          ),
                           if (_pendingLocation.isNotEmpty)
                             Container(
                               margin: const EdgeInsets.only(bottom: 16),
@@ -168,7 +176,7 @@ class _MyDeliveryRouteScreenState extends State<MyDeliveryRouteScreen> {
                                       width: 32, height: 32,
                                       alignment: Alignment.center,
                                       decoration: BoxDecoration(
-                                        color: kPrimaryDark.withOpacity(0.1),
+                                        color: kPrimaryDark.withValues(alpha: 0.1),
                                         shape: BoxShape.circle,
                                       ),
                                       child: Text('${stop.order}', style: const TextStyle(fontWeight: FontWeight.bold, color: kPrimaryDark)),

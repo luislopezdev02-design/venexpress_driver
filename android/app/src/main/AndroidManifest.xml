@@ -10,6 +10,10 @@
     <!-- Requerido por image_picker si se toma foto directo con la cámara como evidencia de entrega -->
     <uses-permission android:name="android.permission.READ_MEDIA_IMAGES"/>
 
+    <!-- Requerido por geolocator para ordenar "Mi Ruta de Entrega" de más lejos a más cerca -->
+    <uses-permission android:name="android.permission.ACCESS_COARSE_LOCATION"/>
+    <uses-permission android:name="android.permission.ACCESS_FINE_LOCATION"/>
+
     <application
         android:label="venexpress_driver"
         android:name="${applicationName}"

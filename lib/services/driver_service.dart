@@ -96,6 +96,7 @@ class DriverService {
     String? receiverPhone,
     required String confirmationMethod,
     File? photo,
+    String? codPaymentMethod,
   }) async {
     final response = await _client.postMultipart(
       '/driver/packages/$packageId/complete-delivery',
@@ -104,6 +105,7 @@ class DriverService {
         'receiver_id_doc': receiverIdDoc,
         if (receiverPhone != null && receiverPhone.isNotEmpty) 'receiver_phone': receiverPhone,
         'delivery_confirmation_method': confirmationMethod,
+        if (codPaymentMethod != null && codPaymentMethod.isNotEmpty) 'cod_payment_method': codPaymentMethod,
       },
       file: photo,
     );

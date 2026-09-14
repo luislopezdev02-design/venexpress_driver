@@ -94,11 +94,11 @@ class _AvailableDeliveriesScreenState extends State<AvailableDeliveriesScreen> {
                 : _packages.isEmpty
                     ? ListView(
                         padding: const EdgeInsets.all(24),
-                        children: [
-                          const SizedBox(height: 80),
-                          const Icon(Icons.inbox_outlined, size: 48, color: kMuted),
-                          const SizedBox(height: 12),
-                          const Center(
+                        children: const [
+                          SizedBox(height: 80),
+                          Icon(Icons.inbox_outlined, size: 48, color: kMuted),
+                          SizedBox(height: 12),
+                          Center(
                             child: Text(
                               'No hay pedidos disponibles por el momento. Esta lista se actualiza sola — desliza hacia abajo para refrescar.',
                               textAlign: TextAlign.center,

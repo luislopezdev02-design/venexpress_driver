@@ -3,6 +3,7 @@ import 'package:provider/provider.dart';
 import '../providers/auth_provider.dart';
 import '../widgets/common_widgets.dart';
 import 'home_screen.dart';
+import 'hub_home_screen.dart';
 
 class LoginScreen extends StatefulWidget {
   const LoginScreen({super.key});
@@ -31,8 +32,9 @@ class _LoginScreenState extends State<LoginScreen> {
     final ok = await auth.login(_emailController.text.trim(), _passwordController.text);
 
     if (ok && mounted) {
+      final isHubDriver = auth.driver?.driverType == 'hub';
       Navigator.of(context).pushReplacement(
-        MaterialPageRoute(builder: (_) => const HomeScreen()),
+        MaterialPageRoute(builder: (_) => isHubDriver ? const HubHomeScreen() : const HomeScreen()),
       );
     }
   }

@@ -3,7 +3,6 @@ import 'package:mobile_scanner/mobile_scanner.dart';
 import 'package:provider/provider.dart';
 import '../providers/driver_provider.dart';
 import '../services/api_client.dart';
-import '../widgets/common_widgets.dart';
 import 'my_route_screen.dart';
 import 'package_detail_screen.dart';
 
@@ -32,6 +31,8 @@ class _ScannerScreenState extends State<ScannerScreen> {
 
     setState(() => _isProcessing = true);
     await _controller.stop();
+
+    if (!mounted) return;
 
     try {
       final result = await context.read<DriverProvider>().scan(code);

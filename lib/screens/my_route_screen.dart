@@ -4,6 +4,7 @@ import '../models/route_model.dart';
 import '../providers/driver_provider.dart';
 import '../services/api_client.dart';
 import '../widgets/common_widgets.dart';
+import 'hub_scanner_screen.dart';
 
 class MyRouteScreen extends StatefulWidget {
   const MyRouteScreen({super.key});
@@ -14,6 +15,7 @@ class MyRouteScreen extends StatefulWidget {
 
 class _MyRouteScreenState extends State<MyRouteScreen> {
   bool _isStarting = false;
+  bool _isCompleting = false;
 
   @override
   void initState() {
@@ -30,13 +32,30 @@ class _MyRouteScreenState extends State<MyRouteScreen> {
       await context.read<DriverProvider>().startRoute();
       if (!mounted) return;
       ScaffoldMessenger.of(context).showSnackBar(
-        const SnackBar(content: Text('Ruta iniciada. Ya puedes escanear paquetes en cada agencia.')),
+        const SnackBar(content: Text('Ruta iniciada. Ya puedes escanear paquetes en cada parada.')),
       );
     } on ApiException catch (e) {
       if (!mounted) return;
       ScaffoldMessenger.of(context).showSnackBar(SnackBar(content: Text(e.message)));
     } finally {
       if (mounted) setState(() => _isStarting = false);
+    }
+  }
+
+  Future<void> _completeRoute() async {
+    setState(() => _isCompleting = true);
+
+    try {
+      await context.read<DriverProvider>().completeRoute();
+      if (!mounted) return;
+      ScaffoldMessenger.of(context).showSnackBar(
+        const SnackBar(content: Text('Ruta finalizada correctamente.')),
+      );
+    } on ApiException catch (e) {
+      if (!mounted) return;
+      ScaffoldMessenger.of(context).showSnackBar(SnackBar(content: Text(e.message)));
+    } finally {
+      if (mounted) setState(() => _isCompleting = false);
     }
   }
 
@@ -56,6 +75,20 @@ class _MyRouteScreenState extends State<MyRouteScreen> {
         backgroundColor: kPrimaryDark,
         foregroundColor: Colors.white,
       ),
+      floatingActionButton: route != null && route.isInProgress
+          ? FloatingActionButton.extended(
+              backgroundColor: kPrimaryDark,
+              icon: const Icon(Icons.qr_code_scanner),
+              label: const Text('Escanear'),
+              onPressed: () async {
+                await Navigator.of(context).push(
+                  MaterialPageRoute(builder: (_) => const HubScannerScreen()),
+                );
+                if (!context.mounted) return;
+                context.read<DriverProvider>().loadActiveRoute();
+              },
+            )
+          : null,
       body: RefreshIndicator(
         onRefresh: () => context.read<DriverProvider>().loadActiveRoute(),
         child: provider.isLoadingRoute && route == null
@@ -63,11 +96,11 @@ class _MyRouteScreenState extends State<MyRouteScreen> {
             : route == null
                 ? ListView(
                     padding: const EdgeInsets.all(24),
-                    children: [
-                      const SizedBox(height: 60),
-                      const Icon(Icons.map_outlined, size: 48, color: kMuted),
-                      const SizedBox(height: 12),
-                      const Center(
+                    children: const [
+                      SizedBox(height: 60),
+                      Icon(Icons.map_outlined, size: 48, color: kMuted),
+                      SizedBox(height: 12),
+                      Center(
                         child: Text(
                           'No tienes una ruta asignada por el momento. Contacta al administrador.',
                           textAlign: TextAlign.center,
@@ -100,8 +133,8 @@ class _MyRouteScreenState extends State<MyRouteScreen> {
                                   padding: const EdgeInsets.symmetric(horizontal: 10, vertical: 4),
                                   decoration: BoxDecoration(
                                     color: route.isInProgress
-                                        ? const Color(0xFF16A34A).withOpacity(0.1)
-                                        : const Color(0xFFF59E0B).withOpacity(0.1),
+                                        ? const Color(0xFF16A34A).withValues(alpha: 0.1)
+                                        : const Color(0xFFF59E0B).withValues(alpha: 0.1),
                                     borderRadius: BorderRadius.circular(999),
                                   ),
                                   child: Text(
@@ -115,6 +148,8 @@ class _MyRouteScreenState extends State<MyRouteScreen> {
                                 ),
                               ],
                             ),
+                            if (route.routeType != null)
+                              Text(route.routeTypeLabel, style: const TextStyle(color: kMuted, fontSize: 12)),
                             if (route.city != null) Text(route.city!, style: const TextStyle(color: kMuted, fontSize: 13)),
                             const SizedBox(height: 12),
                             LinearProgressIndicator(
@@ -126,7 +161,8 @@ class _MyRouteScreenState extends State<MyRouteScreen> {
                             ),
                             const SizedBox(height: 6),
                             Text(
-                              '${route.visitedStops} de ${route.totalStops} agencias visitadas',
+                              '${route.visitedStops} de ${route.totalStops} '
+                              '${route.isHubDistribution ? "almacenes visitados" : "agencias visitadas"}',
                               style: const TextStyle(fontSize: 12, color: kMuted),
                             ),
                             if (route.isAssigned) ...[
@@ -146,13 +182,30 @@ class _MyRouteScreenState extends State<MyRouteScreen> {
                                 ),
                               ),
                             ],
+                            if (route.isInProgress) ...[
+                              const SizedBox(height: 14),
+                              SizedBox(
+                                height: 46,
+                                width: double.infinity,
+                                child: OutlinedButton.icon(
+                                  onPressed: _isCompleting ? null : _completeRoute,
+                                  icon: const Icon(Icons.flag_outlined),
+                                  label: Text(_isCompleting ? 'Finalizando...' : 'Completar ruta'),
+                                  style: OutlinedButton.styleFrom(
+                                    foregroundColor: kPrimaryDark,
+                                    side: const BorderSide(color: kPrimaryDark),
+                                    shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(12)),
+                                  ),
+                                ),
+                              ),
+                            ],
                           ],
                         ),
                       ),
                       const SizedBox(height: 20),
-                      const Text(
-                        'Paradas (agencias a visitar)',
-                        style: TextStyle(fontWeight: FontWeight.bold, color: kPrimaryDark, fontSize: 15),
+                      Text(
+                        route.isHubDistribution ? 'Paradas (almacenes a visitar)' : 'Paradas (agencias a visitar)',
+                        style: const TextStyle(fontWeight: FontWeight.bold, color: kPrimaryDark, fontSize: 15),
                       ),
                       const SizedBox(height: 10),
                       ...route.stops.map((stop) {
@@ -171,7 +224,7 @@ class _MyRouteScreenState extends State<MyRouteScreen> {
                                 height: 32,
                                 alignment: Alignment.center,
                                 decoration: BoxDecoration(
-                                  color: _stopColor(stop).withOpacity(0.15),
+                                  color: _stopColor(stop).withValues(alpha: 0.15),
                                   shape: BoxShape.circle,
                                 ),
                                 child: Text(
@@ -185,11 +238,11 @@ class _MyRouteScreenState extends State<MyRouteScreen> {
                                   crossAxisAlignment: CrossAxisAlignment.start,
                                   children: [
                                     Text(
-                                      stop.ally?.name ?? 'Agencia #${stop.ally?.id ?? ''}',
+                                      stop.displayName,
                                       style: const TextStyle(fontWeight: FontWeight.w600, color: kPrimaryDark),
                                     ),
-                                    if (stop.ally?.address != null)
-                                      Text(stop.ally!.address!, style: const TextStyle(fontSize: 12, color: kMuted)),
+                                    if (stop.displayAddress != null)
+                                      Text(stop.displayAddress!, style: const TextStyle(fontSize: 12, color: kMuted)),
                                     if (stop.packagesCollectedCount > 0)
                                       Text(
                                         '${stop.packagesCollectedCount} paquete(s) recolectado(s)',
