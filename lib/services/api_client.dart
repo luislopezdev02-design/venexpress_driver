@@ -20,6 +20,14 @@ class ApiClient {
   static const _storage = FlutterSecureStorage();
   static const _tokenKey = 'venexpress_driver_token';
 
+  /// Se dispara cuando el backend rechaza el token (401), justo
+  /// después de borrarlo del almacenamiento seguro. AuthProvider se
+  /// suscribe a esto para volver a AuthStatus.unauthenticated, y así
+  /// la app regresa sola al login en vez de seguir reintentando
+  /// requests con un token ya revocado hasta que el usuario toque
+  /// "Cerrar sesión" manualmente.
+  static void Function()? onUnauthorized;
+
   Future<String?> getToken() => _storage.read(key: _tokenKey);
 
   Future<void> saveToken(String token) => _storage.write(key: _tokenKey, value: token);
@@ -97,7 +105,7 @@ class ApiClient {
     return _handleResponse(response);
   }
 
-  dynamic _handleResponse(http.Response response) {
+  Future<dynamic> _handleResponse(http.Response response) async {
     Map<String, dynamic>? decoded;
 
     try {
@@ -130,6 +138,8 @@ class ApiClient {
     }
 
     if (response.statusCode == 401) {
+      await clearToken();
+      onUnauthorized?.call();
       throw ApiException('Tu sesión expiró. Inicia sesión de nuevo.', statusCode: 401);
     }
 

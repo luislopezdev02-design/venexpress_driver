@@ -18,6 +18,7 @@ class _AvailableDeliveriesScreenState extends State<AvailableDeliveriesScreen> {
 
   List<PackageModel> _packages = [];
   bool _isLoading = true;
+  bool _isClaiming = false;
   String? _error;
 
   @override
@@ -45,6 +46,8 @@ class _AvailableDeliveriesScreenState extends State<AvailableDeliveriesScreen> {
   }
 
   Future<void> _claim(PackageModel package) async {
+    setState(() => _isClaiming = true);
+
     try {
       final claimed = await _service.claimById(package.id);
       if (!mounted) return;
@@ -62,6 +65,8 @@ class _AvailableDeliveriesScreenState extends State<AvailableDeliveriesScreen> {
       if (!mounted) return;
       ScaffoldMessenger.of(context).showSnackBar(SnackBar(content: Text(e.message)));
       _load(); // por si ya lo tomó otro, refrescamos la lista
+    } finally {
+      if (mounted) setState(() => _isClaiming = false);
     }
   }
 
@@ -143,7 +148,7 @@ class _AvailableDeliveriesScreenState extends State<AvailableDeliveriesScreen> {
                                   ),
                                 ),
                                 ElevatedButton(
-                                  onPressed: () => _claim(package),
+                                  onPressed: _isClaiming ? null : () => _claim(package),
                                   style: ElevatedButton.styleFrom(
                                     backgroundColor: kPrimaryDark,
                                     foregroundColor: Colors.white,
