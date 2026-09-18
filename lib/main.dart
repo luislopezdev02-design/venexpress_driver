@@ -1,5 +1,6 @@
 import 'package:flutter/material.dart';
 import 'package:provider/provider.dart';
+import 'config/navigation.dart';
 import 'providers/auth_provider.dart';
 import 'providers/driver_provider.dart';
 import 'screens/home_screen.dart';
@@ -22,6 +23,7 @@ class VenexpressDriverApp extends StatelessWidget {
         ChangeNotifierProvider(create: (_) => DriverProvider()),
       ],
       child: MaterialApp(
+        navigatorKey: navigatorKey,
         title: 'Venexpress Repartidor',
         debugShowCheckedModeBanner: false,
         theme: ThemeData(
