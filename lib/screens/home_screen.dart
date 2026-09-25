@@ -41,7 +41,8 @@ class _HomeScreenState extends State<HomeScreen> {
           if (!context.mounted) return;
           context.read<DriverProvider>().loadDashboard();
         },
-        backgroundColor: kPrimaryDark,
+        backgroundColor: kAccent,
+        foregroundColor: kPrimaryDark,
         icon: const Icon(Icons.qr_code_scanner),
         label: const Text('Reclamar Pedido'),
       ),
@@ -153,13 +154,13 @@ class _DashboardTabState extends State<_DashboardTab> {
                             label: 'Por entregar',
                             value: '${dashboard?.pendingToDeliver ?? 0}',
                             icon: Icons.local_shipping_outlined,
-                            accentColor: const Color(0xFF2563EB),
+                            accentColor: const Color(0xFF4A4A45),
                           ),
                           StatCard(
                             label: 'Entregados hoy',
                             value: '${dashboard?.deliveredToday ?? 0}',
                             icon: Icons.today_outlined,
-                            accentColor: const Color(0xFF16A34A),
+                            accentColor: const Color(0xFF047857),
                           ),
                           StatCard(
                             label: 'Total entregados',
@@ -170,7 +171,7 @@ class _DashboardTabState extends State<_DashboardTab> {
                             label: 'COD por cobrar',
                             value: '${dashboard?.codPending ?? 0}',
                             icon: Icons.payments_outlined,
-                            accentColor: const Color(0xFFB45309),
+                            accentColor: const Color(0xFF8C9100),
                           ),
                         ],
                       ),
@@ -186,13 +187,13 @@ class _DashboardTabState extends State<_DashboardTab> {
                           margin: const EdgeInsets.only(bottom: 20),
                           padding: const EdgeInsets.all(16),
                           decoration: BoxDecoration(
-                            color: const Color(0xFF2563EB).withValues(alpha: 0.08),
+                            color: const Color(0xFFF7FF00).withValues(alpha: 0.12),
                             borderRadius: BorderRadius.circular(16),
-                            border: Border.all(color: const Color(0xFF2563EB)),
+                            border: Border.all(color: const Color(0xFF8C9100)),
                           ),
                           child: const Row(
                             children: [
-                              Icon(Icons.inbox_outlined, color: Color(0xFF2563EB)),
+                              Icon(Icons.inbox_outlined, color: Color(0xFF8C9100)),
                               SizedBox(width: 12),
                               Expanded(
                                 child: Text(

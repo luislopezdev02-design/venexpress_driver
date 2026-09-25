@@ -207,14 +207,14 @@ class _PackageDetailScreenState extends State<PackageDetailScreen> {
                       Container(
                         padding: const EdgeInsets.all(12),
                         decoration: BoxDecoration(
-                          color: const Color(0xFFFEF3C7),
+                          color: const Color(0xFFFFFDBA),
                           borderRadius: BorderRadius.circular(12),
-                          border: Border.all(color: const Color(0xFFFDE68A)),
+                          border: Border.all(color: const Color(0xFFFFFC70)),
                         ),
                         child: Text(
                           'Este pedido es contra entrega (COD): US\$${package.codAmountUsd?.toStringAsFixed(2) ?? '0.00'}. '
                           'Indica cómo te cancelaron antes de confirmar.',
-                          style: const TextStyle(fontSize: 12, color: Color(0xFF92400E)),
+                          style: const TextStyle(fontSize: 12, color: Color(0xFF666B00)),
                         ),
                       ),
                       const SizedBox(height: 12),
@@ -403,7 +403,7 @@ class _PackageDetailScreenState extends State<PackageDetailScreen> {
                           ),
                           child: const Row(
                             children: [
-                              Icon(Icons.warning_amber_rounded, color: Colors.red),
+                              Icon(Icons.warning_amber_rounded, color: Color(0xFFDC2626)),
                               SizedBox(width: 10),
                               Expanded(
                                 child: Text(
@@ -485,7 +485,7 @@ class _PackageDetailScreenState extends State<PackageDetailScreen> {
                                   Icon(
                                     incident.isResolved ? Icons.check_circle : Icons.error_outline,
                                     size: 16,
-                                    color: incident.isResolved ? const Color(0xFF16A34A) : const Color(0xFFDC2626),
+                                    color: incident.isResolved ? const Color(0xFF047857) : const Color(0xFFDC2626),
                                   ),
                                   const SizedBox(width: 8),
                                   Expanded(
@@ -504,7 +504,7 @@ class _PackageDetailScreenState extends State<PackageDetailScreen> {
                                           incident.isResolved ? 'Resuelta' : 'En revisión',
                                           style: TextStyle(
                                             fontSize: 11,
-                                            color: incident.isResolved ? const Color(0xFF16A34A) : const Color(0xFFB45309),
+                                            color: incident.isResolved ? const Color(0xFF047857) : const Color(0xFF8C9100),
                                           ),
                                         ),
                                       ],

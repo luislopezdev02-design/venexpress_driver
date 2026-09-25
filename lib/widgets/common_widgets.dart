@@ -1,10 +1,16 @@
 import 'package:flutter/material.dart';
 import '../models/package_model.dart';
 
-const kPrimaryDark = Color(0xFF0F172A);
-const kBackground = Color(0xFFF3F5F7);
-const kBorder = Color(0xFFE2E8F0);
-const kMuted = Color(0xFF64748B);
+// Paleta alineada a la marca web (tailwind.config.js del portal):
+// blanco / amarillo / negro. kPrimaryDark, kBackground, kBorder y
+// kMuted son los mismos hex que #111111 / #F7F7F4 / #E5E5E0 / #6B6B66
+// usados en resources/views/layouts/driver.blade.php. kAccent es el
+// amarillo de marca (amber-400), el mismo de x-primary-button.blade.php.
+const kPrimaryDark = Color(0xFF111111);
+const kBackground = Color(0xFFF7F7F4);
+const kBorder = Color(0xFFE5E5E0);
+const kMuted = Color(0xFF6B6B66);
+const kAccent = Color(0xFFF7FF00);
 
 class StatCard extends StatelessWidget {
   final String label;
@@ -59,9 +65,9 @@ class PackageStatusBadge extends StatelessWidget {
   const PackageStatusBadge({super.key, required this.package});
 
   Color get _color {
-    if (package.isDelivered) return const Color(0xFF16A34A);
-    if (package.currentStatus == 'RECIBIDO_AGENCIA') return const Color(0xFFF59E0B);
-    return const Color(0xFF2563EB);
+    if (package.isDelivered) return const Color(0xFF047857);
+    if (package.currentStatus == 'RECIBIDO_AGENCIA') return const Color(0xFF8C9100);
+    return const Color(0xFF4A4A45);
   }
 
   @override
@@ -131,7 +137,7 @@ class PackageListTile extends StatelessWidget {
                         style: const TextStyle(
                           fontSize: 12,
                           fontWeight: FontWeight.w600,
-                          color: Color(0xFFB45309),
+                          color: Color(0xFF8C9100),
                         ),
                       ),
                     ),
@@ -145,7 +151,7 @@ class PackageListTile extends StatelessWidget {
                 if (package.securityWarning)
                   const Padding(
                     padding: EdgeInsets.only(top: 6),
-                    child: Icon(Icons.warning_amber_rounded, color: Colors.red, size: 18),
+                    child: Icon(Icons.warning_amber_rounded, color: Color(0xFFDC2626), size: 18),
                   ),
               ],
             ),

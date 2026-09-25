@@ -44,7 +44,8 @@ class _HubHomeScreenState extends State<HubHomeScreen> {
                 if (!context.mounted) return;
                 context.read<DriverProvider>().loadActiveRoute();
               },
-              backgroundColor: kPrimaryDark,
+              backgroundColor: kAccent,
+              foregroundColor: kPrimaryDark,
               icon: const Icon(Icons.qr_code_scanner),
               label: const Text('Escanear'),
             )
