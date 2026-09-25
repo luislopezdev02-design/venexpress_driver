@@ -126,14 +126,14 @@ class _LoginScreenState extends State<LoginScreen> {
                     child: ElevatedButton(
                       onPressed: auth.isLoading ? null : _submit,
                       style: ElevatedButton.styleFrom(
-                        backgroundColor: kPrimaryDark,
-                        foregroundColor: Colors.white,
+                        backgroundColor: kAccent,
+                        foregroundColor: kPrimaryDark,
                         shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(12)),
                       ),
                       child: auth.isLoading
                           ? const SizedBox(
                               height: 20, width: 20,
-                              child: CircularProgressIndicator(strokeWidth: 2, color: Colors.white),
+                              child: CircularProgressIndicator(strokeWidth: 2, color: kPrimaryDark),
                             )
                           : const Text('Ingresar', style: TextStyle(fontSize: 16)),
                     ),

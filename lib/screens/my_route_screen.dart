@@ -60,7 +60,7 @@ class _MyRouteScreenState extends State<MyRouteScreen> {
   }
 
   Color _stopColor(RouteStopModel stop) {
-    return stop.isVisited ? const Color(0xFF94A3B8) : const Color(0xFF2563EB);
+    return stop.isVisited ? const Color(0xFFB8B8B2) : const Color(0xFF4A4A45);
   }
 
   @override
@@ -77,7 +77,8 @@ class _MyRouteScreenState extends State<MyRouteScreen> {
       ),
       floatingActionButton: route != null && route.isInProgress
           ? FloatingActionButton.extended(
-              backgroundColor: kPrimaryDark,
+              backgroundColor: kAccent,
+              foregroundColor: kPrimaryDark,
               icon: const Icon(Icons.qr_code_scanner),
               label: const Text('Escanear'),
               onPressed: () async {
@@ -133,8 +134,8 @@ class _MyRouteScreenState extends State<MyRouteScreen> {
                                   padding: const EdgeInsets.symmetric(horizontal: 10, vertical: 4),
                                   decoration: BoxDecoration(
                                     color: route.isInProgress
-                                        ? const Color(0xFF16A34A).withValues(alpha: 0.1)
-                                        : const Color(0xFFF59E0B).withValues(alpha: 0.1),
+                                        ? const Color(0xFF047857).withValues(alpha: 0.1)
+                                        : const Color(0xFF8C9100).withValues(alpha: 0.1),
                                     borderRadius: BorderRadius.circular(999),
                                   ),
                                   child: Text(
@@ -142,7 +143,7 @@ class _MyRouteScreenState extends State<MyRouteScreen> {
                                     style: TextStyle(
                                       fontSize: 11,
                                       fontWeight: FontWeight.w600,
-                                      color: route.isInProgress ? const Color(0xFF16A34A) : const Color(0xFFB45309),
+                                      color: route.isInProgress ? const Color(0xFF047857) : const Color(0xFF8C9100),
                                     ),
                                   ),
                                 ),
@@ -246,13 +247,13 @@ class _MyRouteScreenState extends State<MyRouteScreen> {
                                     if (stop.packagesCollectedCount > 0)
                                       Text(
                                         '${stop.packagesCollectedCount} paquete(s) recolectado(s)',
-                                        style: const TextStyle(fontSize: 12, color: Color(0xFF16A34A)),
+                                        style: const TextStyle(fontSize: 12, color: Color(0xFF047857)),
                                       ),
                                   ],
                                 ),
                               ),
                               if (stop.isVisited)
-                                const Icon(Icons.check_circle, color: Color(0xFF16A34A), size: 20),
+                                const Icon(Icons.check_circle, color: Color(0xFF047857), size: 20),
                             ],
                           ),
                         );

@@ -29,9 +29,9 @@ class _CommissionsScreenState extends State<CommissionsScreen> {
 
   Color _statusColor(String status) {
     return switch (status) {
-      'pagada' => const Color(0xFF16A34A),
+      'pagada' => const Color(0xFF047857),
       'cancelada' => const Color(0xFFDC2626),
-      _ => const Color(0xFFF59E0B),
+      _ => const Color(0xFF8C9100),
     };
   }
 
@@ -60,7 +60,7 @@ class _CommissionsScreenState extends State<CommissionsScreen> {
                           label: 'Pendiente de pago',
                           value: '\$${provider.commissionsPendingUsd.toStringAsFixed(2)}',
                           icon: Icons.hourglass_bottom,
-                          accentColor: const Color(0xFFF59E0B),
+                          accentColor: const Color(0xFF8C9100),
                         ),
                       ),
                       const SizedBox(width: 12),
@@ -69,7 +69,7 @@ class _CommissionsScreenState extends State<CommissionsScreen> {
                           label: 'Total pagado',
                           value: '\$${provider.commissionsPaidUsd.toStringAsFixed(2)}',
                           icon: Icons.check_circle_outline,
-                          accentColor: const Color(0xFF16A34A),
+                          accentColor: const Color(0xFF047857),
                         ),
                       ),
                     ],

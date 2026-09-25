@@ -137,18 +137,18 @@ class _MyDeliveryRouteScreenState extends State<MyDeliveryRouteScreen> {
                               margin: const EdgeInsets.only(bottom: 16),
                               padding: const EdgeInsets.all(12),
                               decoration: BoxDecoration(
-                                color: const Color(0xFFFEF3C7),
+                                color: const Color(0xFFFFFDBA),
                                 borderRadius: BorderRadius.circular(12),
-                                border: Border.all(color: const Color(0xFFFDE68A)),
+                                border: Border.all(color: const Color(0xFFFFFC70)),
                               ),
                               child: Row(
                                 children: [
-                                  const Icon(Icons.hourglass_bottom, color: Color(0xFFB45309), size: 18),
+                                  const Icon(Icons.hourglass_bottom, color: Color(0xFF8C9100), size: 18),
                                   const SizedBox(width: 10),
                                   Expanded(
                                     child: Text(
                                       '${_pendingLocation.length} pedido(s) aún ubicándose en el mapa. Reintenta en unos segundos.',
-                                      style: const TextStyle(fontSize: 12, color: Color(0xFF92400E)),
+                                      style: const TextStyle(fontSize: 12, color: Color(0xFF666B00)),
                                     ),
                                   ),
                                 ],
@@ -202,7 +202,7 @@ class _MyDeliveryRouteScreenState extends State<MyDeliveryRouteScreen> {
                                     ),
                                     Text(
                                       '${stop.distanceKm.toStringAsFixed(1)} km',
-                                      style: const TextStyle(fontWeight: FontWeight.bold, color: Color(0xFF2563EB), fontSize: 13),
+                                      style: const TextStyle(fontWeight: FontWeight.bold, color: Color(0xFF4A4A45), fontSize: 13),
                                     ),
                                   ],
                                 ),
