@@ -1,0 +1,3 @@
+# Los scripts de shell deben conservar finales de línea LF también en
+# Windows (core.autocrlf), o bash falla con errores de "\r".
+*.sh text eol=lf
