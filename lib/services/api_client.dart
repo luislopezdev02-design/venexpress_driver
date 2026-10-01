@@ -1,5 +1,6 @@
 import 'dart:convert';
 import 'dart:io';
+import 'dart:math';
 import 'package:http/http.dart' as http;
 import 'package:flutter_secure_storage/flutter_secure_storage.dart';
 import '../config/api_config.dart';
@@ -19,12 +20,40 @@ class ApiException implements Exception {
 class ApiClient {
   static const _storage = FlutterSecureStorage();
   static const _tokenKey = 'venexpress_driver_token';
+  static const _deviceIdKey = 'venexpress_driver_device_id';
+
+  /// Se llama cada vez que el backend responde 401 (token vencido o
+  /// revocado: suspensión, cambio de contraseña, etc.), después de
+  /// borrar el token guardado. AuthProvider lo usa para volver al
+  /// login desde cualquier pantalla, en vez de dejar al repartidor
+  /// viendo errores sueltos con una sesión que ya no sirve.
+  static void Function()? onUnauthorized;
 
   Future<String?> getToken() => _storage.read(key: _tokenKey);
 
   Future<void> saveToken(String token) => _storage.write(key: _tokenKey, value: token);
 
   Future<void> clearToken() => _storage.delete(key: _tokenKey);
+
+  /// Identificador aleatorio y estable de esta instalación. El backend
+  /// mantiene "un dispositivo = un token" usando el device_name del
+  /// login; antes todos los Android enviaban el mismo nombre
+  /// ("android-device"), así que entrar desde un segundo teléfono
+  /// cerraba la sesión del primero.
+  Future<String> getDeviceId() async {
+    final existing = await _storage.read(key: _deviceIdKey);
+
+    if (existing != null && existing.isNotEmpty) {
+      return existing;
+    }
+
+    final random = Random.secure();
+    final id = List.generate(8, (_) => random.nextInt(256).toRadixString(16).padLeft(2, '0')).join();
+
+    await _storage.write(key: _deviceIdKey, value: id);
+
+    return id;
+  }
 
   Future<Map<String, String>> _headers({bool withAuth = true}) async {
     final headers = {
@@ -97,7 +126,7 @@ class ApiClient {
     return _handleResponse(response);
   }
 
-  dynamic _handleResponse(http.Response response) {
+  Future<dynamic> _handleResponse(http.Response response) async {
     Map<String, dynamic>? decoded;
 
     try {
@@ -130,6 +159,8 @@ class ApiClient {
     }
 
     if (response.statusCode == 401) {
+      await clearToken();
+      onUnauthorized?.call();
       throw ApiException('Tu sesión expiró. Inicia sesión de nuevo.', statusCode: 401);
     }
 
