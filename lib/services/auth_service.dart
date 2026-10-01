@@ -13,7 +13,7 @@ class AuthService {
   final ApiClient _client = ApiClient();
 
   Future<AuthResult> login(String email, String password) async {
-    final deviceName = '${Platform.operatingSystem}-device';
+    final deviceName = '${Platform.operatingSystem}-${await _client.getDeviceId()}';
 
     final response = await _client.post('/driver/login', body: {
       'email': email,
@@ -44,15 +44,18 @@ class AuthService {
     return token != null;
   }
 
-  Future<AuthResult?> me() async {
-    try {
-      final response = await _client.get('/driver/me');
-      return AuthResult(
-        user: DriverUser.fromJson(response['user']),
-        driver: DriverModel.fromJson(response['driver']),
-      );
-    } catch (_) {
-      return null;
-    }
+  /// Valida el token guardado. Lanza ApiException (401 sesión
+  /// vencida, 403 cuenta no habilitada) o un error de red: quien
+  /// llama decide, porque "sin internet" no debe tratarse igual que
+  /// "sesión inválida" (antes ambos cerraban la sesión).
+  Future<AuthResult> me() async {
+    final response = await _client.get('/driver/me');
+
+    return AuthResult(
+      user: DriverUser.fromJson(response['user']),
+      driver: DriverModel.fromJson(response['driver']),
+    );
   }
+
+  Future<void> clearLocalSession() => _client.clearToken();
 }

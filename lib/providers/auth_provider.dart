@@ -3,7 +3,10 @@ import '../models/driver_model.dart';
 import '../services/auth_service.dart';
 import '../services/api_client.dart';
 
-enum AuthStatus { unknown, authenticated, unauthenticated }
+/// [offline]: hay una sesión guardada pero no se pudo validar por falta
+/// de conexión (o un error temporal del servidor). No se borra el
+/// token: la app ofrece reintentar en vez de mandar al login.
+enum AuthStatus { unknown, authenticated, unauthenticated, offline }
 
 class AuthProvider extends ChangeNotifier {
   final AuthService _authService = AuthService();
@@ -14,9 +17,39 @@ class AuthProvider extends ChangeNotifier {
   String? errorMessage;
   bool isLoading = false;
 
-  /// Se llama al abrir la app, para saber si ya hay una sesión
-  /// guardada y validarla contra el backend.
+  /// Lo asigna main.dart para navegar al login (fuera de cualquier
+  /// BuildContext) cuando la sesión deja de ser válida.
+  VoidCallback? onSessionExpired;
+
+  AuthProvider() {
+    ApiClient.onUnauthorized = _handleUnauthorized;
+  }
+
+  /// Cualquier 401 del backend (token vencido o revocado) devuelve al
+  /// login desde cualquier pantalla. Ver ApiClient.onUnauthorized.
+  void _handleUnauthorized() {
+    if (status != AuthStatus.authenticated) {
+      return;
+    }
+
+    user = null;
+    driver = null;
+    errorMessage = 'Tu sesión expiró. Inicia sesión de nuevo.';
+    status = AuthStatus.unauthenticated;
+    notifyListeners();
+
+    onSessionExpired?.call();
+  }
+
+  /// Se llama al abrir la app (y al pulsar "Reintentar" sin conexión),
+  /// para saber si ya hay una sesión guardada y validarla contra el
+  /// backend.
   Future<void> checkSession() async {
+    if (status == AuthStatus.offline) {
+      status = AuthStatus.unknown;
+      notifyListeners();
+    }
+
     final hasSession = await _authService.hasSession();
 
     if (!hasSession) {
@@ -25,14 +58,28 @@ class AuthProvider extends ChangeNotifier {
       return;
     }
 
-    final result = await _authService.me();
-
-    if (result == null) {
-      status = AuthStatus.unauthenticated;
-    } else {
+    try {
+      final result = await _authService.me();
       user = result.user;
       driver = result.driver;
+      errorMessage = null;
       status = AuthStatus.authenticated;
+    } on ApiException catch (e) {
+      if (e.statusCode == 401 || e.statusCode == 403) {
+        // 401: sesión vencida/revocada. 403: la cuenta ya no está
+        // habilitada para operar (suspendida, rechazada...).
+        await _authService.clearLocalSession();
+        user = null;
+        driver = null;
+        errorMessage = e.message;
+        status = AuthStatus.unauthenticated;
+      } else {
+        errorMessage = e.message;
+        status = AuthStatus.offline;
+      }
+    } catch (_) {
+      errorMessage = 'No se pudo conectar con Venexpress. Verifica tu conexión a internet.';
+      status = AuthStatus.offline;
     }
 
     notifyListeners();
@@ -65,6 +112,7 @@ class AuthProvider extends ChangeNotifier {
     await _authService.logout();
     user = null;
     driver = null;
+    errorMessage = null;
     status = AuthStatus.unauthenticated;
     notifyListeners();
   }

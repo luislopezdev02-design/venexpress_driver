@@ -7,6 +7,10 @@ import 'screens/hub_home_screen.dart';
 import 'screens/login_screen.dart';
 import 'widgets/common_widgets.dart';
 
+/// Permite volver al login desde fuera de un BuildContext (ver
+/// AuthProvider.onSessionExpired), igual que el botón de "Salir".
+final GlobalKey<NavigatorState> appNavigatorKey = GlobalKey<NavigatorState>();
+
 void main() {
   runApp(const VenexpressDriverApp());
 }
@@ -18,10 +22,19 @@ class VenexpressDriverApp extends StatelessWidget {
   Widget build(BuildContext context) {
     return MultiProvider(
       providers: [
-        ChangeNotifierProvider(create: (_) => AuthProvider()),
+        ChangeNotifierProvider(
+          create: (_) => AuthProvider()
+            ..onSessionExpired = () {
+              appNavigatorKey.currentState?.pushAndRemoveUntil(
+                MaterialPageRoute(builder: (_) => const LoginScreen()),
+                (route) => false,
+              );
+            },
+        ),
         ChangeNotifierProvider(create: (_) => DriverProvider()),
       ],
       child: MaterialApp(
+        navigatorKey: appNavigatorKey,
         title: 'Venexpress Repartidor',
         debugShowCheckedModeBanner: false,
         theme: ThemeData(
@@ -69,6 +82,34 @@ class _SplashGateState extends State<_SplashGate> {
         backgroundColor: kPrimaryDark,
         body: Center(
           child: CircularProgressIndicator(color: Colors.white),
+        ),
+      );
+    }
+
+    if (auth.status == AuthStatus.offline) {
+      return Scaffold(
+        backgroundColor: kPrimaryDark,
+        body: Center(
+          child: Padding(
+            padding: const EdgeInsets.all(32),
+            child: Column(
+              mainAxisSize: MainAxisSize.min,
+              children: [
+                const Icon(Icons.wifi_off, color: Colors.white, size: 48),
+                const SizedBox(height: 16),
+                Text(
+                  auth.errorMessage ?? 'No se pudo conectar con Venexpress.',
+                  textAlign: TextAlign.center,
+                  style: const TextStyle(color: Colors.white),
+                ),
+                const SizedBox(height: 24),
+                ElevatedButton(
+                  onPressed: () => context.read<AuthProvider>().checkSession(),
+                  child: const Text('Reintentar'),
+                ),
+              ],
+            ),
+          ),
         ),
       );
     }

@@ -24,6 +24,7 @@ class _PackageDetailScreenState extends State<PackageDetailScreen> {
   PackageModel? _package;
   List<IncidentModel> _incidents = [];
   bool _isLoading = true;
+  bool _isCollectingCod = false;
   String? _error;
 
   @override
@@ -57,6 +58,7 @@ class _PackageDetailScreenState extends State<PackageDetailScreen> {
   Future<void> _openReportIncidentSheet() async {
     String selectedType = IncidentType.clienteAusente;
     final descriptionController = TextEditingController();
+    bool isSubmitting = false;
 
     await showModalBottomSheet(
       context: context,
@@ -107,34 +109,37 @@ class _PackageDetailScreenState extends State<PackageDetailScreen> {
                           shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(12)),
                         ),
                         icon: const Icon(Icons.report_problem_outlined),
-                        onPressed: () async {
-                          if (descriptionController.text.trim().isEmpty) {
-                            ScaffoldMessenger.of(sheetContext).showSnackBar(
-                              const SnackBar(content: Text('Describe brevemente qué ocurrió.')),
-                            );
-                            return;
-                          }
+                        onPressed: isSubmitting
+                            ? null
+                            : () async {
+                                if (descriptionController.text.trim().isEmpty) {
+                                  ScaffoldMessenger.of(sheetContext).showSnackBar(
+                                    const SnackBar(content: Text('Describe brevemente qué ocurrió.')),
+                                  );
+                                  return;
+                                }
 
-                          Navigator.of(sheetContext).pop();
+                                setSheetState(() => isSubmitting = true);
+                                Navigator.of(sheetContext).pop();
 
-                          try {
-                            final incident = await _incidentService.report(
-                              packageId: widget.packageId,
-                              type: selectedType,
-                              description: descriptionController.text.trim(),
-                            );
+                                try {
+                                  final incident = await _incidentService.report(
+                                    packageId: widget.packageId,
+                                    type: selectedType,
+                                    description: descriptionController.text.trim(),
+                                  );
 
-                            if (!mounted) return;
-                            setState(() => _incidents = [incident, ..._incidents]);
+                                  if (!mounted) return;
+                                  setState(() => _incidents = [incident, ..._incidents]);
 
-                            ScaffoldMessenger.of(context).showSnackBar(
-                              const SnackBar(content: Text('Incidencia reportada correctamente.')),
-                            );
-                          } on ApiException catch (e) {
-                            if (!mounted) return;
-                            ScaffoldMessenger.of(context).showSnackBar(SnackBar(content: Text(e.message)));
-                          }
-                        },
+                                  ScaffoldMessenger.of(context).showSnackBar(
+                                    const SnackBar(content: Text('Incidencia reportada correctamente.')),
+                                  );
+                                } on ApiException catch (e) {
+                                  if (!mounted) return;
+                                  ScaffoldMessenger.of(context).showSnackBar(SnackBar(content: Text(e.message)));
+                                }
+                              },
                         label: const Text('Reportar incidencia'),
                       ),
                     ),
@@ -156,6 +161,7 @@ class _PackageDetailScreenState extends State<PackageDetailScreen> {
     String confirmationMethod = 'cedula';
     String? codPaymentMethod;
     File? photo;
+    bool isSubmitting = false;
 
     await showModalBottomSheet(
       context: context,
@@ -241,6 +247,13 @@ class _PackageDetailScreenState extends State<PackageDetailScreen> {
                         final picked = await ImagePicker().pickImage(
                           source: ImageSource.camera,
                           imageQuality: 70,
+                          // Limita la resolución máxima para que la
+                          // foto de evidencia no sea un archivo pesado
+                          // en una cámara de alta resolución: evita
+                          // subidas lentas o que agoten el timeout de
+                          // ApiConfig en conexiones débiles.
+                          maxWidth: 1600,
+                          maxHeight: 1600,
                         );
                         if (picked != null) {
                           setSheetState(() => photo = File(picked.path));
@@ -258,7 +271,9 @@ class _PackageDetailScreenState extends State<PackageDetailScreen> {
                           foregroundColor: Colors.white,
                           shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(12)),
                         ),
-                        onPressed: () async {
+                        onPressed: isSubmitting
+                            ? null
+                            : () async {
                           if (nameController.text.trim().isEmpty || idDocController.text.trim().isEmpty) {
                             ScaffoldMessenger.of(sheetContext).showSnackBar(
                               const SnackBar(content: Text('Nombre y cédula del receptor son obligatorios.')),
@@ -273,6 +288,7 @@ class _PackageDetailScreenState extends State<PackageDetailScreen> {
                             return;
                           }
 
+                          setSheetState(() => isSubmitting = true);
                           Navigator.of(sheetContext).pop();
 
                           try {
@@ -323,16 +339,20 @@ class _PackageDetailScreenState extends State<PackageDetailScreen> {
   String _paymentMethodLabel(String method) => _paymentMethodLabels[method] ?? method;
 
   Future<void> _collectCod() async {
+    setState(() => _isCollectingCod = true);
+
     try {
       final updated = await context.read<DriverProvider>().collectCod(_package!.id);
-      setState(() => _package = updated);
       if (!mounted) return;
+      setState(() => _package = updated);
       ScaffoldMessenger.of(context).showSnackBar(
         const SnackBar(content: Text('Cobro COD registrado correctamente.')),
       );
     } on ApiException catch (e) {
       if (!mounted) return;
       ScaffoldMessenger.of(context).showSnackBar(SnackBar(content: Text(e.message)));
+    } finally {
+      if (mounted) setState(() => _isCollectingCod = false);
     }
   }
 
@@ -540,7 +560,7 @@ class _PackageDetailScreenState extends State<PackageDetailScreen> {
                           child: SizedBox(
                             height: 50,
                             child: OutlinedButton.icon(
-                              onPressed: _collectCod,
+                              onPressed: _isCollectingCod ? null : _collectCod,
                               icon: const Icon(Icons.payments_outlined),
                               label: const Text('Registrar cobro COD'),
                               style: OutlinedButton.styleFrom(
