@@ -20,6 +20,9 @@ class PackageModel {
   final String currentStatus;
   final String statusLabel;
   final String? deliveryStatus;
+  final bool hasDeliveryPin;
+  final int? deliveryPinAttemptsLeft;
+  final String? deliveryConfirmationMethod;
   final PersonInfo sender;
   final PersonInfo recipient;
   final String? destinationCity;
@@ -34,6 +37,7 @@ class PackageModel {
   final String? codStatus;
   final String? codCollectedAt;
   final String? codPaymentMethod;
+  final String? codPaymentReference;
   final double? driverRemunerationUsd;
   final String? driverRemunerationStatus;
   final bool securityWarning;
@@ -47,6 +51,9 @@ class PackageModel {
     required this.currentStatus,
     required this.statusLabel,
     this.deliveryStatus,
+    this.hasDeliveryPin = false,
+    this.deliveryPinAttemptsLeft,
+    this.deliveryConfirmationMethod,
     required this.sender,
     required this.recipient,
     this.destinationCity,
@@ -61,6 +68,7 @@ class PackageModel {
     this.codStatus,
     this.codCollectedAt,
     this.codPaymentMethod,
+    this.codPaymentReference,
     this.driverRemunerationUsd,
     this.driverRemunerationStatus,
     required this.securityWarning,
@@ -70,6 +78,13 @@ class PackageModel {
   });
 
   bool get isDelivered => currentStatus == 'ENTREGADO';
+
+  /// Salió a reparto con este repartidor: solo desde aquí se puede
+  /// confirmar la entrega a domicilio.
+  bool get isOutForDelivery => currentStatus == 'EN_RUTA';
+
+  /// COD que todavía hay que cobrarle al destinatario al entregar.
+  bool get codPendingAtDelivery => isCod && codCollectedAt == null;
 
   bool get codPendingCollection =>
       isCod && isDelivered && codStatus != 'liquidado' && codCollectedAt == null;
@@ -81,6 +96,9 @@ class PackageModel {
       currentStatus: json['current_status'] ?? '',
       statusLabel: json['status_label'] ?? '',
       deliveryStatus: json['delivery_status'],
+      hasDeliveryPin: json['has_delivery_pin'] ?? false,
+      deliveryPinAttemptsLeft: json['delivery_pin_attempts_left'],
+      deliveryConfirmationMethod: json['delivery_confirmation_method'],
       sender: PersonInfo.fromJson(json['sender'] ?? {}),
       recipient: PersonInfo.fromJson(json['recipient'] ?? {}),
       destinationCity: json['destination_city'],
@@ -95,6 +113,7 @@ class PackageModel {
       codStatus: json['cod_status'],
       codCollectedAt: json['cod_collected_at'],
       codPaymentMethod: json['cod_payment_method'],
+      codPaymentReference: json['cod_payment_reference'],
       driverRemunerationUsd: (json['driver_remuneration_usd'] as num?)?.toDouble(),
       driverRemunerationStatus: json['driver_remuneration_status'],
       securityWarning: json['security_warning'] ?? false,

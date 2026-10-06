@@ -67,6 +67,8 @@ class PackageStatusBadge extends StatelessWidget {
   Color get _color {
     if (package.isDelivered) return const Color(0xFF047857);
     if (package.currentStatus == 'RECIBIDO_AGENCIA') return const Color(0xFF8C9100);
+    if (package.isOutForDelivery) return const Color(0xFF1D4ED8);
+    if (package.currentStatus == 'ENTREGA_FALLIDA') return const Color(0xFFDC2626);
     return const Color(0xFF4A4A45);
   }
 

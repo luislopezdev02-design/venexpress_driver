@@ -153,14 +153,37 @@ class _PackageDetailScreenState extends State<PackageDetailScreen> {
     );
   }
 
+  /// Formas de pago que dejan un número de referencia: es obligatorio
+  /// registrarlo (mismo criterio que Package::PAYMENT_METHODS_REQUIRING_REFERENCE).
+  static const Set<String> _methodsRequiringReference = {'pago_movil', 'transferencia', 'zelle'};
+
+  bool _isCashMethod(String? method) => method == 'efectivo_usd' || method == 'efectivo_ves';
+
+  Future<File?> _pickImage(ImageSource source) async {
+    final picked = await ImagePicker().pickImage(
+      source: source,
+      imageQuality: 70,
+      // Limita la resolución máxima para que la foto no sea un archivo
+      // pesado en una cámara de alta resolución: evita subidas lentas
+      // o que agoten el timeout de ApiConfig en conexiones débiles.
+      maxWidth: 1600,
+      maxHeight: 1600,
+    );
+
+    return picked != null ? File(picked.path) : null;
+  }
+
   Future<void> _openCompleteDeliverySheet() async {
     final package = _package!;
     final nameController = TextEditingController();
     final idDocController = TextEditingController();
     final phoneController = TextEditingController();
-    String confirmationMethod = 'cedula';
+    final pinController = TextEditingController();
+    final referenceController = TextEditingController();
+    bool withoutPin = !package.hasDeliveryPin;
     String? codPaymentMethod;
     File? photo;
+    File? codPaymentProof;
     bool isSubmitting = false;
 
     await showModalBottomSheet(
@@ -169,6 +192,9 @@ class _PackageDetailScreenState extends State<PackageDetailScreen> {
       builder: (sheetContext) {
         return StatefulBuilder(
           builder: (sheetContext, setSheetState) {
+            final usesPin = package.hasDeliveryPin && !withoutPin;
+            final needsReference = _methodsRequiringReference.contains(codPaymentMethod);
+
             return Padding(
               padding: EdgeInsets.only(
                 left: 20, right: 20, top: 20,
@@ -189,26 +215,80 @@ class _PackageDetailScreenState extends State<PackageDetailScreen> {
                     ),
                     const SizedBox(height: 12),
                     TextField(
-                      controller: idDocController,
-                      decoration: const InputDecoration(labelText: 'Cédula de quien recibe', border: OutlineInputBorder()),
-                    ),
-                    const SizedBox(height: 12),
-                    TextField(
                       controller: phoneController,
+                      keyboardType: TextInputType.phone,
                       decoration: const InputDecoration(labelText: 'Teléfono (opcional)', border: OutlineInputBorder()),
                     ),
                     const SizedBox(height: 12),
-                    DropdownButtonFormField<String>(
-                      initialValue: confirmationMethod,
-                      decoration: const InputDecoration(labelText: 'Método de confirmación', border: OutlineInputBorder()),
-                      items: const [
-                        DropdownMenuItem(value: 'cedula', child: Text('Verificación de cédula')),
-                        DropdownMenuItem(value: 'firma', child: Text('Firma')),
-                        DropdownMenuItem(value: 'foto', child: Text('Foto de evidencia')),
-                      ],
-                      onChanged: (value) => setSheetState(() => confirmationMethod = value!),
-                    ),
-                    if (package.isCod && package.codCollectedAt == null) ...[
+                    if (package.hasDeliveryPin)
+                      SwitchListTile(
+                        contentPadding: EdgeInsets.zero,
+                        title: const Text('El destinatario no tiene el PIN', style: TextStyle(fontSize: 14)),
+                        value: withoutPin,
+                        onChanged: (value) => setSheetState(() => withoutPin = value),
+                      ),
+                    if (usesPin) ...[
+                      TextField(
+                        controller: pinController,
+                        keyboardType: TextInputType.number,
+                        maxLength: 6,
+                        decoration: InputDecoration(
+                          labelText: 'PIN de entrega',
+                          helperText: package.deliveryPinAttemptsLeft != null
+                              ? 'Pídeselo al destinatario. Intentos disponibles: ${package.deliveryPinAttemptsLeft}'
+                              : 'Pídeselo al destinatario.',
+                          border: const OutlineInputBorder(),
+                        ),
+                      ),
+                    ] else ...[
+                      Container(
+                        padding: const EdgeInsets.all(12),
+                        decoration: BoxDecoration(
+                          color: const Color(0xFFEFF6FF),
+                          borderRadius: BorderRadius.circular(12),
+                          border: Border.all(color: const Color(0xFFBFDBFE)),
+                        ),
+                        child: const Text(
+                          'Sin PIN: verifica la cédula del destinatario y toma una foto de la entrega. '
+                          'Solo el destinatario puede recibir el paquete.',
+                          style: TextStyle(fontSize: 12, color: Color(0xFF1E3A8A)),
+                        ),
+                      ),
+                      const SizedBox(height: 12),
+                      TextField(
+                        controller: idDocController,
+                        decoration: const InputDecoration(
+                          labelText: 'Cédula del destinatario',
+                          hintText: 'V-12345678',
+                          border: OutlineInputBorder(),
+                        ),
+                      ),
+                      const SizedBox(height: 12),
+                      OutlinedButton.icon(
+                        onPressed: () async {
+                          final picked = await _pickImage(ImageSource.camera);
+                          if (picked != null) setSheetState(() => photo = picked);
+                        },
+                        icon: const Icon(Icons.camera_alt_outlined),
+                        label: Text(photo == null ? 'Tomar foto de la entrega' : 'Foto capturada ✓'),
+                      ),
+                    ],
+                    if (package.isCod && !package.codPendingAtDelivery) ...[
+                      const SizedBox(height: 12),
+                      Container(
+                        padding: const EdgeInsets.all(12),
+                        decoration: BoxDecoration(
+                          color: const Color(0xFFECFDF5),
+                          borderRadius: BorderRadius.circular(12),
+                          border: Border.all(color: const Color(0xFFA7F3D0)),
+                        ),
+                        child: const Text(
+                          'Este pedido contra entrega ya figura como pagado: no cobres al entregar.',
+                          style: TextStyle(fontSize: 12, color: Color(0xFF047857)),
+                        ),
+                      ),
+                    ],
+                    if (package.codPendingAtDelivery) ...[
                       const SizedBox(height: 12),
                       Container(
                         padding: const EdgeInsets.all(12),
@@ -219,7 +299,7 @@ class _PackageDetailScreenState extends State<PackageDetailScreen> {
                         ),
                         child: Text(
                           'Este pedido es contra entrega (COD): US\$${package.codAmountUsd?.toStringAsFixed(2) ?? '0.00'}. '
-                          'Indica cómo te cancelaron antes de confirmar.',
+                          'No lo entregues sin registrar el pago.',
                           style: const TextStyle(fontSize: 12, color: Color(0xFF666B00)),
                         ),
                       ),
@@ -231,37 +311,33 @@ class _PackageDetailScreenState extends State<PackageDetailScreen> {
                           border: OutlineInputBorder(),
                         ),
                         hint: const Text('Selecciona cómo te cancelaron...'),
-                        items: const [
-                          DropdownMenuItem(value: 'efectivo_usd', child: Text('Efectivo (USD)')),
-                          DropdownMenuItem(value: 'efectivo_ves', child: Text('Efectivo (VES)')),
-                          DropdownMenuItem(value: 'pago_movil', child: Text('Pago móvil')),
-                          DropdownMenuItem(value: 'transferencia', child: Text('Transferencia')),
-                          DropdownMenuItem(value: 'zelle', child: Text('Zelle')),
-                        ],
+                        items: _paymentMethodLabels.entries
+                            .map((e) => DropdownMenuItem(value: e.key, child: Text(e.value)))
+                            .toList(),
                         onChanged: (value) => setSheetState(() => codPaymentMethod = value),
                       ),
+                      if (codPaymentMethod != null && !_isCashMethod(codPaymentMethod)) ...[
+                        const SizedBox(height: 12),
+                        TextField(
+                          controller: referenceController,
+                          decoration: InputDecoration(
+                            labelText: needsReference ? 'Número de referencia' : 'Número de referencia (opcional)',
+                            border: const OutlineInputBorder(),
+                          ),
+                        ),
+                        const SizedBox(height: 12),
+                        OutlinedButton.icon(
+                          onPressed: () async {
+                            final picked = await _pickImage(ImageSource.gallery);
+                            if (picked != null) setSheetState(() => codPaymentProof = picked);
+                          },
+                          icon: const Icon(Icons.receipt_long_outlined),
+                          label: Text(
+                            codPaymentProof == null ? 'Adjuntar comprobante (opcional)' : 'Comprobante adjunto ✓',
+                          ),
+                        ),
+                      ],
                     ],
-                    const SizedBox(height: 12),
-                    OutlinedButton.icon(
-                      onPressed: () async {
-                        final picked = await ImagePicker().pickImage(
-                          source: ImageSource.camera,
-                          imageQuality: 70,
-                          // Limita la resolución máxima para que la
-                          // foto de evidencia no sea un archivo pesado
-                          // en una cámara de alta resolución: evita
-                          // subidas lentas o que agoten el timeout de
-                          // ApiConfig en conexiones débiles.
-                          maxWidth: 1600,
-                          maxHeight: 1600,
-                        );
-                        if (picked != null) {
-                          setSheetState(() => photo = File(picked.path));
-                        }
-                      },
-                      icon: const Icon(Icons.camera_alt_outlined),
-                      label: Text(photo == null ? 'Tomar foto de evidencia (opcional)' : 'Foto capturada ✓'),
-                    ),
                     const SizedBox(height: 20),
                     SizedBox(
                       height: 48,
@@ -274,17 +350,26 @@ class _PackageDetailScreenState extends State<PackageDetailScreen> {
                         onPressed: isSubmitting
                             ? null
                             : () async {
-                          if (nameController.text.trim().isEmpty || idDocController.text.trim().isEmpty) {
-                            ScaffoldMessenger.of(sheetContext).showSnackBar(
-                              const SnackBar(content: Text('Nombre y cédula del receptor son obligatorios.')),
-                            );
-                            return;
+                          String? problem;
+
+                          if (nameController.text.trim().isEmpty) {
+                            problem = 'Indica el nombre de quien recibe.';
+                          } else if (usesPin && !RegExp(r'^\d{6}$').hasMatch(pinController.text.trim())) {
+                            problem = 'El PIN de entrega tiene 6 dígitos.';
+                          } else if (!usesPin && idDocController.text.trim().isEmpty) {
+                            problem = 'Sin PIN, indica la cédula del destinatario.';
+                          } else if (!usesPin && photo == null) {
+                            problem = 'Sin PIN, toma una foto de la entrega.';
+                          } else if (package.codPendingAtDelivery && codPaymentMethod == null) {
+                            problem = 'Indica la forma de pago con la que te cancelaron el COD.';
+                          } else if (package.codPendingAtDelivery &&
+                              needsReference &&
+                              referenceController.text.trim().isEmpty) {
+                            problem = 'Indica el número de referencia del pago.';
                           }
 
-                          if (package.isCod && package.codCollectedAt == null && codPaymentMethod == null) {
-                            ScaffoldMessenger.of(sheetContext).showSnackBar(
-                              const SnackBar(content: Text('Indica la forma de pago con la que te cancelaron el COD.')),
-                            );
+                          if (problem != null) {
+                            ScaffoldMessenger.of(sheetContext).showSnackBar(SnackBar(content: Text(problem)));
                             return;
                           }
 
@@ -295,11 +380,17 @@ class _PackageDetailScreenState extends State<PackageDetailScreen> {
                             final updated = await context.read<DriverProvider>().completeDelivery(
                                   packageId: package.id,
                                   receiverName: nameController.text.trim(),
-                                  receiverIdDoc: idDocController.text.trim(),
+                                  receiverIdDoc: usesPin ? null : idDocController.text.trim(),
                                   receiverPhone: phoneController.text.trim(),
-                                  confirmationMethod: confirmationMethod,
-                                  photo: photo,
-                                  codPaymentMethod: codPaymentMethod,
+                                  deliveryPin: usesPin ? pinController.text.trim() : null,
+                                  photo: usesPin ? null : photo,
+                                  codPaymentMethod: package.codPendingAtDelivery ? codPaymentMethod : null,
+                                  codPaymentReference: package.codPendingAtDelivery && !_isCashMethod(codPaymentMethod)
+                                      ? referenceController.text.trim()
+                                      : null,
+                                  codPaymentProof: package.codPendingAtDelivery && !_isCashMethod(codPaymentMethod)
+                                      ? codPaymentProof
+                                      : null,
                                 );
 
                             if (!mounted) return;
@@ -313,6 +404,9 @@ class _PackageDetailScreenState extends State<PackageDetailScreen> {
                             ScaffoldMessenger.of(context).showSnackBar(
                               SnackBar(content: Text(e.message)),
                             );
+                            // Un PIN incorrecto se cuenta en el servidor:
+                            // recarga para mostrar los intentos que quedan.
+                            _load();
                           }
                         },
                         child: const Text('Confirmar entrega'),
@@ -333,6 +427,7 @@ class _PackageDetailScreenState extends State<PackageDetailScreen> {
     'efectivo_ves': 'Efectivo (VES)',
     'pago_movil': 'Pago móvil',
     'transferencia': 'Transferencia',
+    'punto_venta': 'Punto de venta',
     'zelle': 'Zelle',
   };
 
@@ -478,6 +573,8 @@ class _PackageDetailScreenState extends State<PackageDetailScreen> {
                             _infoRow('Cobrado', _package!.codCollectedAt != null ? 'Sí' : 'No'),
                             if (_package!.codPaymentMethod != null)
                               _infoRow('Forma de pago', _paymentMethodLabel(_package!.codPaymentMethod!)),
+                            if (_package!.codPaymentReference != null)
+                              _infoRow('Referencia', _package!.codPaymentReference),
                           ],
                         ),
 
@@ -538,8 +635,7 @@ class _PackageDetailScreenState extends State<PackageDetailScreen> {
 
                       const SizedBox(height: 8),
 
-                      if (_package!.requiresDelivery &&
-                          _package!.currentStatus == 'EN_TRANSITO_NACIONAL')
+                      if (_package!.requiresDelivery && _package!.isOutForDelivery)
                         SizedBox(
                           height: 50,
                           child: ElevatedButton.icon(

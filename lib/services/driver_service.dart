@@ -89,25 +89,39 @@ class DriverService {
     );
   }
 
+  /// Confirma la entrega a domicilio (el paquete debe estar EN_RUTA).
+  ///
+  /// Con el PIN que el destinatario recibió por correo (`deliveryPin`),
+  /// o sin él: cédula del destinatario (`receiverIdDoc`) + foto de la
+  /// entrega (`photo`). Un COD sin cobrar exige la forma de pago y, si es
+  /// pago móvil/transferencia/Zelle, la referencia; el comprobante
+  /// (`codPaymentProof`) es opcional.
   Future<PackageModel> completeDelivery({
     required int packageId,
     required String receiverName,
-    required String receiverIdDoc,
+    String? receiverIdDoc,
     String? receiverPhone,
-    required String confirmationMethod,
+    String? deliveryPin,
     File? photo,
     String? codPaymentMethod,
+    String? codPaymentReference,
+    File? codPaymentProof,
   }) async {
     final response = await _client.postMultipart(
       '/driver/packages/$packageId/complete-delivery',
       fields: {
         'receiver_name': receiverName,
-        'receiver_id_doc': receiverIdDoc,
+        if (receiverIdDoc != null && receiverIdDoc.isNotEmpty) 'receiver_id_doc': receiverIdDoc,
         if (receiverPhone != null && receiverPhone.isNotEmpty) 'receiver_phone': receiverPhone,
-        'delivery_confirmation_method': confirmationMethod,
+        if (deliveryPin != null && deliveryPin.isNotEmpty) 'delivery_pin': deliveryPin,
         if (codPaymentMethod != null && codPaymentMethod.isNotEmpty) 'cod_payment_method': codPaymentMethod,
+        if (codPaymentReference != null && codPaymentReference.isNotEmpty)
+          'cod_payment_reference': codPaymentReference,
       },
       file: photo,
+      files: {
+        if (codPaymentProof != null) 'cod_payment_proof': codPaymentProof,
+      },
     );
 
     return PackageModel.fromJson(response['package']);

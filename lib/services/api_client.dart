@@ -104,6 +104,7 @@ class ApiClient {
     required Map<String, String> fields,
     File? file,
     String fileFieldName = 'photo',
+    Map<String, File> files = const {},
   }) async {
     final uri = _uri(path);
     final request = http.MultipartRequest('POST', uri);
@@ -118,6 +119,10 @@ class ApiClient {
 
     if (file != null) {
       request.files.add(await http.MultipartFile.fromPath(fileFieldName, file.path));
+    }
+
+    for (final entry in files.entries) {
+      request.files.add(await http.MultipartFile.fromPath(entry.key, entry.value.path));
     }
 
     final streamed = await request.send().timeout(ApiConfig.timeout);

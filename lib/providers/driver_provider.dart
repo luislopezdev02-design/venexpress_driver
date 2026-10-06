@@ -175,20 +175,24 @@ class DriverProvider extends ChangeNotifier {
   Future<PackageModel> completeDelivery({
     required int packageId,
     required String receiverName,
-    required String receiverIdDoc,
+    String? receiverIdDoc,
     String? receiverPhone,
-    required String confirmationMethod,
+    String? deliveryPin,
     File? photo,
     String? codPaymentMethod,
+    String? codPaymentReference,
+    File? codPaymentProof,
   }) async {
     final updated = await _service.completeDelivery(
       packageId: packageId,
       receiverName: receiverName,
       receiverIdDoc: receiverIdDoc,
       receiverPhone: receiverPhone,
-      confirmationMethod: confirmationMethod,
+      deliveryPin: deliveryPin,
       photo: photo,
       codPaymentMethod: codPaymentMethod,
+      codPaymentReference: codPaymentReference,
+      codPaymentProof: codPaymentProof,
     );
 
     loadDashboard();
