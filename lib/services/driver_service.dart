@@ -93,7 +93,9 @@ class DriverService {
   ///
   /// Con el PIN que el destinatario recibió por correo (`deliveryPin`),
   /// o sin él: cédula del destinatario (`receiverIdDoc`) + foto de la
-  /// entrega (`photo`). Un COD sin cobrar exige la forma de pago y, si es
+  /// entrega (`photo`); o a un tercero autorizado (`receivedByThirdParty`,
+  /// su cédula en `receiverIdDoc`, `thirdPartyIdPhoto` y
+  /// `recipientIdCopy`). Un COD sin cobrar exige la forma de pago y, si es
   /// pago móvil/transferencia/Zelle, la referencia; el comprobante
   /// (`codPaymentProof`) es opcional.
   Future<PackageModel> completeDelivery({
@@ -106,6 +108,9 @@ class DriverService {
     String? codPaymentMethod,
     String? codPaymentReference,
     File? codPaymentProof,
+    bool receivedByThirdParty = false,
+    File? thirdPartyIdPhoto,
+    File? recipientIdCopy,
   }) async {
     final response = await _client.postMultipart(
       '/driver/packages/$packageId/complete-delivery',
@@ -117,12 +122,30 @@ class DriverService {
         if (codPaymentMethod != null && codPaymentMethod.isNotEmpty) 'cod_payment_method': codPaymentMethod,
         if (codPaymentReference != null && codPaymentReference.isNotEmpty)
           'cod_payment_reference': codPaymentReference,
+        if (receivedByThirdParty) 'received_by_third_party': '1',
       },
       file: photo,
       files: {
         if (codPaymentProof != null) 'cod_payment_proof': codPaymentProof,
+        if (thirdPartyIdPhoto != null) 'third_party_id_photo': thirdPartyIdPhoto,
+        if (recipientIdCopy != null) 'recipient_id_copy': recipientIdCopy,
       },
     );
+
+    return PackageModel.fromJson(response['package']);
+  }
+
+  /// No se pudo entregar (el paquete debe estar EN_RUTA): queda
+  /// ENTREGA_FALLIDA con el motivo y hay que devolverlo al almacén.
+  Future<PackageModel> markDeliveryFailed({
+    required int packageId,
+    required String reason,
+    String? notes,
+  }) async {
+    final response = await _client.post('/driver/packages/$packageId/failed-delivery', body: {
+      'reason': reason,
+      if (notes != null && notes.isNotEmpty) 'notes': notes,
+    });
 
     return PackageModel.fromJson(response['package']);
   }

@@ -181,9 +181,12 @@ class _PackageDetailScreenState extends State<PackageDetailScreen> {
     final pinController = TextEditingController();
     final referenceController = TextEditingController();
     bool withoutPin = !package.hasDeliveryPin;
+    bool byThirdParty = false;
     String? codPaymentMethod;
     File? photo;
     File? codPaymentProof;
+    File? thirdPartyIdPhoto;
+    File? recipientIdCopy;
     bool isSubmitting = false;
 
     await showModalBottomSheet(
@@ -193,6 +196,7 @@ class _PackageDetailScreenState extends State<PackageDetailScreen> {
         return StatefulBuilder(
           builder: (sheetContext, setSheetState) {
             final usesPin = package.hasDeliveryPin && !withoutPin;
+            final thirdParty = !usesPin && byThirdParty;
             final needsReference = _methodsRequiringReference.contains(codPaymentMethod);
 
             return Padding(
@@ -248,19 +252,25 @@ class _PackageDetailScreenState extends State<PackageDetailScreen> {
                           borderRadius: BorderRadius.circular(12),
                           border: Border.all(color: const Color(0xFFBFDBFE)),
                         ),
-                        child: const Text(
-                          'Sin PIN: verifica la cédula del destinatario y toma una foto de la entrega. '
-                          'Solo el destinatario puede recibir el paquete.',
-                          style: TextStyle(fontSize: 12, color: Color(0xFF1E3A8A)),
+                        child: Text(
+                          thirdParty
+                              ? 'Tercero autorizado: anota su cédula y fotografía su cédula y la copia de la cédula del destinatario.'
+                              : 'Sin PIN: verifica la cédula del destinatario y toma una foto de la entrega.',
+                          style: const TextStyle(fontSize: 12, color: Color(0xFF1E3A8A)),
                         ),
                       ),
-                      const SizedBox(height: 12),
+                      SwitchListTile(
+                        contentPadding: EdgeInsets.zero,
+                        title: const Text('Lo recibe un tercero autorizado', style: TextStyle(fontSize: 14)),
+                        value: byThirdParty,
+                        onChanged: (value) => setSheetState(() => byThirdParty = value),
+                      ),
                       TextField(
                         controller: idDocController,
-                        decoration: const InputDecoration(
-                          labelText: 'Cédula del destinatario',
+                        decoration: InputDecoration(
+                          labelText: thirdParty ? 'Cédula de quien recibe' : 'Cédula del destinatario',
                           hintText: 'V-12345678',
-                          border: OutlineInputBorder(),
+                          border: const OutlineInputBorder(),
                         ),
                       ),
                       const SizedBox(height: 12),
@@ -270,8 +280,34 @@ class _PackageDetailScreenState extends State<PackageDetailScreen> {
                           if (picked != null) setSheetState(() => photo = picked);
                         },
                         icon: const Icon(Icons.camera_alt_outlined),
-                        label: Text(photo == null ? 'Tomar foto de la entrega' : 'Foto capturada ✓'),
+                        label: Text(photo == null
+                            ? (thirdParty ? 'Tomar foto de la entrega (opcional)' : 'Tomar foto de la entrega')
+                            : 'Foto capturada ✓'),
                       ),
+                      if (thirdParty) ...[
+                        const SizedBox(height: 8),
+                        OutlinedButton.icon(
+                          onPressed: () async {
+                            final picked = await _pickImage(ImageSource.camera);
+                            if (picked != null) setSheetState(() => thirdPartyIdPhoto = picked);
+                          },
+                          icon: const Icon(Icons.badge_outlined),
+                          label: Text(thirdPartyIdPhoto == null
+                              ? 'Foto de la cédula de quien recibe'
+                              : 'Cédula de quien recibe ✓'),
+                        ),
+                        const SizedBox(height: 8),
+                        OutlinedButton.icon(
+                          onPressed: () async {
+                            final picked = await _pickImage(ImageSource.camera);
+                            if (picked != null) setSheetState(() => recipientIdCopy = picked);
+                          },
+                          icon: const Icon(Icons.copy_all_outlined),
+                          label: Text(recipientIdCopy == null
+                              ? 'Foto de la copia de la cédula del destinatario'
+                              : 'Copia de la cédula del destinatario ✓'),
+                        ),
+                      ],
                     ],
                     if (package.isCod && !package.codPendingAtDelivery) ...[
                       const SizedBox(height: 12),
@@ -357,9 +393,13 @@ class _PackageDetailScreenState extends State<PackageDetailScreen> {
                           } else if (usesPin && !RegExp(r'^\d{6}$').hasMatch(pinController.text.trim())) {
                             problem = 'El PIN de entrega tiene 6 dígitos.';
                           } else if (!usesPin && idDocController.text.trim().isEmpty) {
-                            problem = 'Sin PIN, indica la cédula del destinatario.';
-                          } else if (!usesPin && photo == null) {
+                            problem = thirdParty
+                                ? 'Indica la cédula de quien recibe.'
+                                : 'Sin PIN, indica la cédula del destinatario.';
+                          } else if (!usesPin && !thirdParty && photo == null) {
                             problem = 'Sin PIN, toma una foto de la entrega.';
+                          } else if (thirdParty && (thirdPartyIdPhoto == null || recipientIdCopy == null)) {
+                            problem = 'Toma la foto de la cédula de quien recibe y la de la copia de la cédula del destinatario.';
                           } else if (package.codPendingAtDelivery && codPaymentMethod == null) {
                             problem = 'Indica la forma de pago con la que te cancelaron el COD.';
                           } else if (package.codPendingAtDelivery &&
@@ -391,6 +431,9 @@ class _PackageDetailScreenState extends State<PackageDetailScreen> {
                                   codPaymentProof: package.codPendingAtDelivery && !_isCashMethod(codPaymentMethod)
                                       ? codPaymentProof
                                       : null,
+                                  receivedByThirdParty: thirdParty,
+                                  thirdPartyIdPhoto: thirdParty ? thirdPartyIdPhoto : null,
+                                  recipientIdCopy: thirdParty ? recipientIdCopy : null,
                                 );
 
                             if (!mounted) return;
@@ -410,6 +453,126 @@ class _PackageDetailScreenState extends State<PackageDetailScreen> {
                           }
                         },
                         child: const Text('Confirmar entrega'),
+                      ),
+                    ),
+                  ],
+                ),
+              ),
+            );
+          },
+        );
+      },
+    );
+  }
+
+  /// Motivos de una entrega fallida (Package::FAILED_DELIVERY_REASON_LABELS).
+  static const Map<String, String> _failedReasonLabels = {
+    'CLIENTE_AUSENTE': 'Destinatario ausente',
+    'DIRECCION_INCORRECTA': 'Dirección incorrecta o no encontrada',
+    'RECHAZADO_POR_CLIENTE': 'El destinatario lo rechazó',
+    'SIN_PAGO': 'No pagó el cobro contra entrega',
+    'ZONA_INACCESIBLE': 'Zona inaccesible o insegura',
+    'OTRO': 'Otro',
+  };
+
+  Future<void> _openFailedDeliverySheet() async {
+    final package = _package!;
+    final notesController = TextEditingController();
+    String? reason;
+    bool isSubmitting = false;
+
+    await showModalBottomSheet(
+      context: context,
+      isScrollControlled: true,
+      builder: (sheetContext) {
+        return StatefulBuilder(
+          builder: (sheetContext, setSheetState) {
+            return Padding(
+              padding: EdgeInsets.only(
+                left: 20, right: 20, top: 20,
+                bottom: MediaQuery.of(sheetContext).viewInsets.bottom + 20,
+              ),
+              child: SingleChildScrollView(
+                child: Column(
+                  crossAxisAlignment: CrossAxisAlignment.stretch,
+                  children: [
+                    const Text(
+                      'No se pudo entregar',
+                      style: TextStyle(fontSize: 18, fontWeight: FontWeight.bold, color: kPrimaryDark),
+                    ),
+                    const SizedBox(height: 8),
+                    const Text(
+                      'Después tendrás que devolver el paquete al almacén.',
+                      style: TextStyle(fontSize: 12, color: kMuted),
+                    ),
+                    const SizedBox(height: 16),
+                    DropdownButtonFormField<String>(
+                      initialValue: reason,
+                      decoration: const InputDecoration(labelText: 'Motivo', border: OutlineInputBorder()),
+                      hint: const Text('Selecciona el motivo...'),
+                      items: _failedReasonLabels.entries
+                          .map((e) => DropdownMenuItem(value: e.key, child: Text(e.value)))
+                          .toList(),
+                      onChanged: (value) => setSheetState(() => reason = value),
+                    ),
+                    const SizedBox(height: 12),
+                    TextField(
+                      controller: notesController,
+                      maxLines: 3,
+                      decoration: InputDecoration(
+                        labelText: reason == 'OTRO' ? 'Detalle' : 'Detalle (opcional)',
+                        border: const OutlineInputBorder(),
+                        alignLabelWithHint: true,
+                      ),
+                    ),
+                    const SizedBox(height: 20),
+                    SizedBox(
+                      height: 48,
+                      child: ElevatedButton(
+                        style: ElevatedButton.styleFrom(
+                          backgroundColor: const Color(0xFFDC2626),
+                          foregroundColor: Colors.white,
+                          shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(12)),
+                        ),
+                        onPressed: isSubmitting
+                            ? null
+                            : () async {
+                                if (reason == null) {
+                                  ScaffoldMessenger.of(sheetContext).showSnackBar(
+                                    const SnackBar(content: Text('Selecciona por qué no se pudo entregar.')),
+                                  );
+                                  return;
+                                }
+
+                                if (reason == 'OTRO' && notesController.text.trim().isEmpty) {
+                                  ScaffoldMessenger.of(sheetContext).showSnackBar(
+                                    const SnackBar(content: Text('Describe brevemente qué pasó.')),
+                                  );
+                                  return;
+                                }
+
+                                setSheetState(() => isSubmitting = true);
+                                Navigator.of(sheetContext).pop();
+
+                                try {
+                                  final updated = await context.read<DriverProvider>().markDeliveryFailed(
+                                        packageId: package.id,
+                                        reason: reason!,
+                                        notes: notesController.text.trim(),
+                                      );
+
+                                  if (!mounted) return;
+                                  setState(() => _package = updated);
+
+                                  ScaffoldMessenger.of(context).showSnackBar(
+                                    const SnackBar(content: Text('Entrega marcada como fallida. Devuelve el paquete al almacén.')),
+                                  );
+                                } on ApiException catch (e) {
+                                  if (!mounted) return;
+                                  ScaffoldMessenger.of(context).showSnackBar(SnackBar(content: Text(e.message)));
+                                }
+                              },
+                        child: const Text('Marcar entrega fallida'),
                       ),
                     ),
                   ],
@@ -564,6 +727,22 @@ class _PackageDetailScreenState extends State<PackageDetailScreen> {
                         ],
                       ),
 
+                      if (_package!.isDeliveryFailed)
+                        _sectionCard(
+                          title: 'Entrega fallida',
+                          children: [
+                            _infoRow('Intentos', '${_package!.deliveryAttempts}'),
+                            _infoRow('Motivo', _package!.failedDeliveryReasonLabel),
+                            if (_package!.failedDeliveryNotes != null)
+                              _infoRow('Detalle', _package!.failedDeliveryNotes),
+                            const SizedBox(height: 6),
+                            const Text(
+                              'Devuelve el paquete al almacén: allí deciden si sale en un nuevo intento o vuelve al remitente.',
+                              style: TextStyle(fontSize: 12, color: Color(0xFFB91C1C)),
+                            ),
+                          ],
+                        ),
+
                       if (_package!.isCod)
                         _sectionCard(
                           title: 'Pago contra entrega (COD)',
@@ -646,6 +825,24 @@ class _PackageDetailScreenState extends State<PackageDetailScreen> {
                               backgroundColor: kPrimaryDark,
                               foregroundColor: Colors.white,
                               shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(12)),
+                            ),
+                          ),
+                        ),
+
+                      if (_package!.requiresDelivery && _package!.isOutForDelivery)
+                        Padding(
+                          padding: const EdgeInsets.only(top: 12),
+                          child: SizedBox(
+                            height: 50,
+                            child: OutlinedButton.icon(
+                              onPressed: _openFailedDeliverySheet,
+                              icon: const Icon(Icons.cancel_outlined),
+                              label: const Text('No se pudo entregar'),
+                              style: OutlinedButton.styleFrom(
+                                foregroundColor: const Color(0xFFDC2626),
+                                side: const BorderSide(color: Color(0xFFDC2626)),
+                                shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(12)),
+                              ),
                             ),
                           ),
                         ),

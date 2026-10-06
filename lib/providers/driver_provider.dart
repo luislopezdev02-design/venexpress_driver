@@ -182,6 +182,9 @@ class DriverProvider extends ChangeNotifier {
     String? codPaymentMethod,
     String? codPaymentReference,
     File? codPaymentProof,
+    bool receivedByThirdParty = false,
+    File? thirdPartyIdPhoto,
+    File? recipientIdCopy,
   }) async {
     final updated = await _service.completeDelivery(
       packageId: packageId,
@@ -193,8 +196,21 @@ class DriverProvider extends ChangeNotifier {
       codPaymentMethod: codPaymentMethod,
       codPaymentReference: codPaymentReference,
       codPaymentProof: codPaymentProof,
+      receivedByThirdParty: receivedByThirdParty,
+      thirdPartyIdPhoto: thirdPartyIdPhoto,
+      recipientIdCopy: recipientIdCopy,
     );
 
+    loadDashboard();
+    return updated;
+  }
+
+  Future<PackageModel> markDeliveryFailed({
+    required int packageId,
+    required String reason,
+    String? notes,
+  }) async {
+    final updated = await _service.markDeliveryFailed(packageId: packageId, reason: reason, notes: notes);
     loadDashboard();
     return updated;
   }

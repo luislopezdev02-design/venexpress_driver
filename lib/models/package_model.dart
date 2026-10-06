@@ -23,6 +23,11 @@ class PackageModel {
   final bool hasDeliveryPin;
   final int? deliveryPinAttemptsLeft;
   final String? deliveryConfirmationMethod;
+  final bool receivedByThirdParty;
+  final int deliveryAttempts;
+  final String? failedDeliveryReason;
+  final String? failedDeliveryReasonLabel;
+  final String? failedDeliveryNotes;
   final PersonInfo sender;
   final PersonInfo recipient;
   final String? destinationCity;
@@ -54,6 +59,11 @@ class PackageModel {
     this.hasDeliveryPin = false,
     this.deliveryPinAttemptsLeft,
     this.deliveryConfirmationMethod,
+    this.receivedByThirdParty = false,
+    this.deliveryAttempts = 0,
+    this.failedDeliveryReason,
+    this.failedDeliveryReasonLabel,
+    this.failedDeliveryNotes,
     required this.sender,
     required this.recipient,
     this.destinationCity,
@@ -83,6 +93,9 @@ class PackageModel {
   /// confirmar la entrega a domicilio.
   bool get isOutForDelivery => currentStatus == 'EN_RUTA';
 
+  /// No se pudo entregar: hay que devolverlo al almacén.
+  bool get isDeliveryFailed => currentStatus == 'ENTREGA_FALLIDA';
+
   /// COD que todavía hay que cobrarle al destinatario al entregar.
   bool get codPendingAtDelivery => isCod && codCollectedAt == null;
 
@@ -99,6 +112,11 @@ class PackageModel {
       hasDeliveryPin: json['has_delivery_pin'] ?? false,
       deliveryPinAttemptsLeft: json['delivery_pin_attempts_left'],
       deliveryConfirmationMethod: json['delivery_confirmation_method'],
+      receivedByThirdParty: json['received_by_third_party'] ?? false,
+      deliveryAttempts: json['delivery_attempts'] ?? 0,
+      failedDeliveryReason: json['failed_delivery_reason'],
+      failedDeliveryReasonLabel: json['failed_delivery_reason_label'],
+      failedDeliveryNotes: json['failed_delivery_notes'],
       sender: PersonInfo.fromJson(json['sender'] ?? {}),
       recipient: PersonInfo.fromJson(json['recipient'] ?? {}),
       destinationCity: json['destination_city'],
