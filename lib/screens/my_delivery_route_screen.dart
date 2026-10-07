@@ -40,13 +40,16 @@ class _MyDeliveryRouteScreenState extends State<MyDeliveryRouteScreen> {
         latitude: position.latitude,
         longitude: position.longitude,
       );
+      if (!mounted) return;
       setState(() {
         _stops = result.stops;
         _pendingLocation = result.pendingLocation;
       });
     } on LocationException catch (e) {
+      if (!mounted) return;
       setState(() => _error = e.message);
     } on ApiException catch (e) {
+      if (!mounted) return;
       setState(() => _error = e.message);
     } catch (e) {
       // No debería llegar aquí normalmente (LocationException y
@@ -54,11 +57,12 @@ class _MyDeliveryRouteScreenState extends State<MyDeliveryRouteScreen> {
       // rastro en el log para poder diagnosticarlo — el mensaje al
       // repartidor solo sugiere las dos causas más comunes.
       debugPrint('Error inesperado calculando la ruta de entrega: $e');
+      if (!mounted) return;
       setState(() => _error =
           'No se pudo calcular tu ruta. Verifica tu conexión a internet y que el GPS esté activo, luego reintenta.\n'
           '(detalle técnico: $e)');
     } finally {
-      setState(() => _isLoading = false);
+      if (mounted) setState(() => _isLoading = false);
     }
   }
 

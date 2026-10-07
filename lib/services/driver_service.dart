@@ -1,4 +1,4 @@
-import 'dart:io';
+import 'package:image_picker/image_picker.dart' show XFile;
 import '../models/driver_model.dart';
 import '../models/package_model.dart';
 import 'api_client.dart';
@@ -104,13 +104,13 @@ class DriverService {
     String? receiverIdDoc,
     String? receiverPhone,
     String? deliveryPin,
-    File? photo,
+    XFile? photo,
     String? codPaymentMethod,
     String? codPaymentReference,
-    File? codPaymentProof,
+    XFile? codPaymentProof,
     bool receivedByThirdParty = false,
-    File? thirdPartyIdPhoto,
-    File? recipientIdCopy,
+    XFile? thirdPartyIdPhoto,
+    XFile? recipientIdCopy,
   }) async {
     final response = await _client.postMultipart(
       '/driver/packages/$packageId/complete-delivery',

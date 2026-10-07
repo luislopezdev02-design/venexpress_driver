@@ -1,8 +1,8 @@
 import 'dart:convert';
-import 'dart:io';
 import 'dart:math';
 import 'package:http/http.dart' as http;
 import 'package:flutter_secure_storage/flutter_secure_storage.dart';
+import 'package:image_picker/image_picker.dart' show XFile;
 import '../config/api_config.dart';
 
 /// Excepción con el mensaje ya listo para mostrar al usuario (viene
@@ -102,9 +102,9 @@ class ApiClient {
   Future<dynamic> postMultipart(
     String path, {
     required Map<String, String> fields,
-    File? file,
+    XFile? file,
     String fileFieldName = 'photo',
-    Map<String, File> files = const {},
+    Map<String, XFile> files = const {},
   }) async {
     final uri = _uri(path);
     final request = http.MultipartRequest('POST', uri);
@@ -118,17 +118,23 @@ class ApiClient {
     request.fields.addAll(fields);
 
     if (file != null) {
-      request.files.add(await http.MultipartFile.fromPath(fileFieldName, file.path));
+      request.files.add(await _multipartFile(fileFieldName, file));
     }
 
     for (final entry in files.entries) {
-      request.files.add(await http.MultipartFile.fromPath(entry.key, entry.value.path));
+      request.files.add(await _multipartFile(entry.key, entry.value));
     }
 
     final streamed = await request.send().timeout(ApiConfig.timeout);
     final response = await http.Response.fromStream(streamed);
 
     return _handleResponse(response);
+  }
+
+  /// Desde los bytes (no la ruta) para que también funcione en la
+  /// versión web, donde no hay sistema de archivos.
+  Future<http.MultipartFile> _multipartFile(String field, XFile file) async {
+    return http.MultipartFile.fromBytes(field, await file.readAsBytes(), filename: file.name);
   }
 
   Future<dynamic> _handleResponse(http.Response response) async {

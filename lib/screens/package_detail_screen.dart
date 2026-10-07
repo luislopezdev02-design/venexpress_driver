@@ -1,4 +1,3 @@
-import 'dart:io';
 import 'package:flutter/material.dart';
 import 'package:image_picker/image_picker.dart';
 import 'package:provider/provider.dart';
@@ -42,16 +41,19 @@ class _PackageDetailScreenState extends State<PackageDetailScreen> {
     try {
       final package = await context.read<DriverProvider>().getPackageDetail(widget.packageId);
       final incidents = await _incidentService.listFor(widget.packageId);
+      if (!mounted) return;
       setState(() {
         _package = package;
         _incidents = incidents;
       });
     } on ApiException catch (e) {
+      if (!mounted) return;
       setState(() => _error = e.message);
     } catch (e) {
+      if (!mounted) return;
       setState(() => _error = 'No se pudo cargar el pedido.');
     } finally {
-      setState(() => _isLoading = false);
+      if (mounted) setState(() => _isLoading = false);
     }
   }
 
@@ -159,7 +161,7 @@ class _PackageDetailScreenState extends State<PackageDetailScreen> {
 
   bool _isCashMethod(String? method) => method == 'efectivo_usd' || method == 'efectivo_ves';
 
-  Future<File?> _pickImage(ImageSource source) async {
+  Future<XFile?> _pickImage(ImageSource source) async {
     final picked = await ImagePicker().pickImage(
       source: source,
       imageQuality: 70,
@@ -170,7 +172,7 @@ class _PackageDetailScreenState extends State<PackageDetailScreen> {
       maxHeight: 1600,
     );
 
-    return picked != null ? File(picked.path) : null;
+    return picked;
   }
 
   Future<void> _openCompleteDeliverySheet() async {
@@ -183,10 +185,10 @@ class _PackageDetailScreenState extends State<PackageDetailScreen> {
     bool withoutPin = !package.hasDeliveryPin;
     bool byThirdParty = false;
     String? codPaymentMethod;
-    File? photo;
-    File? codPaymentProof;
-    File? thirdPartyIdPhoto;
-    File? recipientIdCopy;
+    XFile? photo;
+    XFile? codPaymentProof;
+    XFile? thirdPartyIdPhoto;
+    XFile? recipientIdCopy;
     bool isSubmitting = false;
 
     await showModalBottomSheet(

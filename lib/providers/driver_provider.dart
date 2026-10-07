@@ -1,4 +1,4 @@
-import 'dart:io';
+import 'package:image_picker/image_picker.dart' show XFile;
 import 'package:flutter/foundation.dart';
 import '../models/driver_model.dart';
 import '../models/package_model.dart';
@@ -178,13 +178,13 @@ class DriverProvider extends ChangeNotifier {
     String? receiverIdDoc,
     String? receiverPhone,
     String? deliveryPin,
-    File? photo,
+    XFile? photo,
     String? codPaymentMethod,
     String? codPaymentReference,
-    File? codPaymentProof,
+    XFile? codPaymentProof,
     bool receivedByThirdParty = false,
-    File? thirdPartyIdPhoto,
-    File? recipientIdCopy,
+    XFile? thirdPartyIdPhoto,
+    XFile? recipientIdCopy,
   }) async {
     final updated = await _service.completeDelivery(
       packageId: packageId,

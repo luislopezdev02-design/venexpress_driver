@@ -1,4 +1,4 @@
-import 'dart:io';
+import 'package:flutter/foundation.dart' show defaultTargetPlatform, kIsWeb;
 import '../models/driver_model.dart';
 import 'api_client.dart';
 
@@ -13,7 +13,8 @@ class AuthService {
   final ApiClient _client = ApiClient();
 
   Future<AuthResult> login(String email, String password) async {
-    final deviceName = '${Platform.operatingSystem}-${await _client.getDeviceId()}';
+    final platform = kIsWeb ? 'web' : defaultTargetPlatform.name;
+    final deviceName = '$platform-${await _client.getDeviceId()}';
 
     final response = await _client.post('/driver/login', body: {
       'email': email,

@@ -35,13 +35,16 @@ class _AvailableDeliveriesScreenState extends State<AvailableDeliveriesScreen> {
 
     try {
       final page = await _service.getAvailable();
+      if (!mounted) return;
       setState(() => _packages = page.items);
     } on ApiException catch (e) {
+      if (!mounted) return;
       setState(() => _error = e.message);
     } catch (e) {
+      if (!mounted) return;
       setState(() => _error = 'No se pudo cargar la lista.');
     } finally {
-      setState(() => _isLoading = false);
+      if (mounted) setState(() => _isLoading = false);
     }
   }
 
