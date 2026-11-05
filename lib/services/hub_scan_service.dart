@@ -101,7 +101,7 @@ HubOperationResolution resolveHubOperation({
         key: 'collection',
         title: 'Registrar recolección',
         cta: 'Confirmar recolección',
-        hint: 'Guía localizada en la agencia. Confirma para registrar la salida hacia Venexpress.',
+        hint: 'Guía localizada en la agencia. Confirma para registrar la salida hacia ViaYaa.',
       ));
     }
 

@@ -1,11 +1,11 @@
 {
-    "name": "Venexpress Repartidor",
+    "name": "ViaYaa Repartidor",
     "short_name": "Repartidor",
     "start_url": ".",
     "display": "standalone",
     "background_color": "#0175C2",
     "theme_color": "#0175C2",
-    "description": "App de Venexpress para repartidores.",
+    "description": "App de ViaYaa para repartidores.",
     "orientation": "portrait-primary",
     "prefer_related_applications": false,
     "icons": [

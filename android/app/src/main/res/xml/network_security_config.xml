@@ -3,7 +3,7 @@
     Config de red para builds de RELEASE (y cualquier build que no sea debug).
 
     A propósito NO permite tráfico cleartext (http://) aquí: en producción,
-    la API de Venexpress debe servirse siempre por HTTPS con un dominio real.
+    la API de ViaYaa debe servirse siempre por HTTPS con un dominio real.
 
     Para pruebas en red local con http:// (ej. http://192.168.0.164:8000),
     usa un build debug — ese usa automáticamente

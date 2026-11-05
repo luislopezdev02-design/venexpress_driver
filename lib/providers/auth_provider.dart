@@ -78,7 +78,7 @@ class AuthProvider extends ChangeNotifier {
         status = AuthStatus.offline;
       }
     } catch (_) {
-      errorMessage = 'No se pudo conectar con Venexpress. Verifica tu conexión a internet.';
+      errorMessage = 'No se pudo conectar con ViaYaa. Verifica tu conexión a internet.';
       status = AuthStatus.offline;
     }
 

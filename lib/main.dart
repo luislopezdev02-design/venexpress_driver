@@ -35,7 +35,7 @@ class VenexpressDriverApp extends StatelessWidget {
       ],
       child: MaterialApp(
         navigatorKey: appNavigatorKey,
-        title: 'Venexpress Repartidor',
+        title: 'ViaYaa Repartidor',
         debugShowCheckedModeBanner: false,
         theme: ThemeData(
           useMaterial3: true,
@@ -98,7 +98,7 @@ class _SplashGateState extends State<_SplashGate> {
                 const Icon(Icons.wifi_off, color: Colors.white, size: 48),
                 const SizedBox(height: 16),
                 Text(
-                  auth.errorMessage ?? 'No se pudo conectar con Venexpress.',
+                  auth.errorMessage ?? 'No se pudo conectar con ViaYaa.',
                   textAlign: TextAlign.center,
                   style: const TextStyle(color: Colors.white),
                 ),
