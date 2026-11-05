@@ -55,15 +55,35 @@ android {
     buildTypes {
         release {
             // Usa tu keystore real si key.properties existe (ver
-            // android/key.properties.example para crearlo). Si no
-            // existe, cae de vuelta a la firma de debug para que el
-            // build no se rompa mientras todavía no tienes keystore.
+            // android/key.properties.example para crearlo). Sin él, un
+            // APK/AAB de release ya NO se genera (ver el chequeo de
+            // taskGraph abajo): firmarlo con la clave de debug —que es
+            // pública— permitiría que cualquiera distribuyera una
+            // "actualización" falsa que Android aceptaría.
             signingConfig = if (hasReleaseSigning) {
                 signingConfigs.getByName("release")
             } else {
                 signingConfigs.getByName("debug")
             }
         }
+    }
+}
+
+// SEGURIDAD: falla cualquier build de release (assembleRelease,
+// bundleRelease, `flutter build apk/appbundle`) si no hay keystore real.
+// Para una prueba local puntual: ALLOW_DEBUG_SIGNED_RELEASE=true.
+gradle.taskGraph.whenReady {
+    val buildsRelease = allTasks.any { task ->
+        task.project == project &&
+            task.name.contains("Release") &&
+            (task.name.startsWith("assemble") || task.name.startsWith("bundle") || task.name.startsWith("package"))
+    }
+
+    if (buildsRelease && !hasReleaseSigning && System.getenv("ALLOW_DEBUG_SIGNED_RELEASE") != "true") {
+        throw GradleException(
+            "Falta android/key.properties: el APK de producción no puede firmarse con la clave " +
+                "de debug (es pública). Crea el keystore siguiendo android/key.properties.example."
+        )
     }
 }
 
